@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from math import atan2, cos, hypot, isfinite, pi, sin
 
 from m4_global_planner.representation.geometry import (
+    bounds_xy,
     disk_overlaps_box,
     overlaps_box,
     segment_intersects_region,
@@ -62,7 +63,8 @@ class StraightWalkEdgeValidator:
 
         if any(
             segment_intersects_region(start, end, region)
-            for region in planning_map.get_walk_exclusion_regions()
+            for region in planning_map.query_walk_exclusions(*bounds_xy(
+                [(start.x, start.y), (end.x, end.y)]))
         ):
             return False
 
@@ -80,10 +82,10 @@ class StraightWalkEdgeValidator:
         xmin, xmax, ymin, ymax, _, _ = planning_map.get_3d_bounds()
         if not all(xmin <= x <= xmax and ymin <= y <= ymax for x, y in sweep):
             return False
-        for obstacle in planning_map.get_obstacles_3d():
+        for obstacle in planning_map.query_occupied_volumes(*bounds_xy(sweep)):
             if (
-                max(start.z, end.z) + validator.height < obstacle['min'][2]
-                or min(start.z, end.z) > obstacle['max'][2]
+                max(start.z, end.z) + validator.height < obstacle.lower[2]
+                or min(start.z, end.z) > obstacle.upper[2]
             ):
                 continue
             if overlaps_box(sweep, start.heading, obstacle):
@@ -103,7 +105,8 @@ class StraightWalkEdgeGenerator:
             return None
         if any(
             segment_intersects_region(start, end, region)
-            for region in planning_map.get_walk_cost_regions()
+            for region in planning_map.query_walk_costs(*bounds_xy(
+                [(start.x, start.y), (end.x, end.y)]))
         ):
             raise NotImplementedError('WALK terrain edge costs are pending')
         distance = hypot(end.x - start.x, end.y - start.y)
@@ -153,8 +156,10 @@ class WalkMotionValidator:
             and ymin <= start.y - radius and start.y + radius <= ymax
         ):
             return None
-        for obstacle in planning_map.get_obstacles_3d():
-            if start.z + validator.height < obstacle['min'][2] or start.z > obstacle['max'][2]:
+        for obstacle in planning_map.query_occupied_volumes(
+                (start.x - radius, start.y - radius),
+                (start.x + radius, start.y + radius)):
+            if start.z + validator.height < obstacle.lower[2] or start.z > obstacle.upper[2]:
                 continue
             if disk_overlaps_box(start.x, start.y, radius, obstacle):
                 return None
@@ -177,13 +182,14 @@ class WalkMotionEdgeGenerator(StraightWalkEdgeGenerator):
             return None
         distance = hypot(end.x - start.x, end.y - start.y)
         cost = self.cost.calculate(distance, motion)
-        for region in planning_map.get_walk_cost_regions():
+        for region in planning_map.query_walk_costs(*bounds_xy(
+                [(start.x, start.y), (end.x, end.y)])):
             interval = segment_region_interval(start, end, region)
             if interval is None:
                 continue
             if self.terrain_mode == 'unsupported':
                 raise NotImplementedError('WALK terrain edge costs are pending')
-            density = region['cost']
+            density = region.cost
             if not isfinite(density) or density < 0:
                 raise ValueError('Terrain density must be finite and nonnegative')
             cost += distance * (interval[1] - interval[0]) * density

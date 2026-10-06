@@ -186,3 +186,32 @@ def test_invalid_numeric_settings(field, value):
     parameters['fly_validation'][field] = value
     with pytest.raises(ValueError):
         FlyStateValidator(parameters)
+
+
+@pytest.mark.parametrize('operation', ['takeoff', 'landing'])
+def test_ground_to_air_geometry_does_not_validate_flight_operations(operation):
+    _, _, planning_map, validator, transitions = fly_setup('T01_open_transition')
+    ground, airborne = fly(2.5, 2.5, 0), fly(2.5, 2.5, 1)
+    start, end = (ground, airborne) if operation == 'takeoff' else (airborne, ground)
+    assert validator.is_edge_valid(start, end, planning_map)
+    with pytest.raises(NotImplementedError, match='Unsupported flight motion'):
+        validator.is_edge_valid(start, end, planning_map, operation)
+    # Stationary morphing is supported only at the matching ground pose.
+    walk = PoseState(2.5, 2.5, 0, 0)
+    assert transitions.is_valid(walk, ground, planning_map, 'walk_to_fly')
+    assert transitions.is_valid(walk, ground, planning_map, 'fly_to_walk')
+    assert not transitions.is_valid(walk, airborne, planning_map, 'walk_to_fly')
+    assert not transitions.is_valid(walk, airborne, planning_map, 'fly_to_walk')
+    with pytest.raises(NotImplementedError, match='direction'):
+        transitions.is_valid(walk, ground, planning_map, operation)
+
+
+@pytest.mark.parametrize('section', ['fly_validation', 'transition_validation'])
+def test_takeoff_landing_configuration_cannot_enable_missing_model(section):
+    _, parameters, _, validator, transitions = fly_setup('T01_open_transition')
+    parameters[section]['takeoff_landing_policy'] = 'supported'
+    with pytest.raises(NotImplementedError, match='takeoff_landing_policy'):
+        if section == 'fly_validation':
+            FlyStateValidator(parameters)
+        else:
+            TransitionValidator(parameters, transitions.walk, validator)

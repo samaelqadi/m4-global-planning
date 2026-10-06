@@ -41,8 +41,12 @@ class BoxBody:
                            anchor, self.lower, self.upper, lower, upper
                        )):
                 return False
-        for obstacle in planning_map.get_obstacles_3d():
-            lo, hi = obstacle['min'], obstacle['max']
+        query_lower = tuple(min(a, b) + lo - self.tolerance
+                            for a, b, lo in zip(start, end, self.lower))
+        query_upper = tuple(max(a, b) + hi + self.tolerance
+                            for a, b, hi in zip(start, end, self.upper))
+        for obstacle in planning_map.query_occupied_volumes(query_lower, query_upper):
+            lo, hi = obstacle.lower, obstacle.upper
             if len(lo) != 3 or len(hi) != 3 or not all(isfinite(value) for value in (*lo, *hi)):
                 raise ValueError('Obstacle bounds must be finite 3D coordinates')
             if any(a > b for a, b in zip(lo, hi)):
@@ -63,9 +67,12 @@ class FlyStateValidator(StateValidator):
             'pose_anchor': 'bottom_center', 'body_policy': 'fixed_axis_aligned_box',
             'yaw_policy': 'absent', 'map_policy': 'complete_test_boxes',
             'ground_policy': 'flat_floor', 'ground_contact_policy': 'allow',
-            'unknown_policy': 'reject_map', 'obstacle_contact_policy': 'collision',
+            'obstacle_contact_policy': 'collision',
             'motion_policy': 'straight_translation', 'takeoff_landing_policy': 'unsupported',
         }
+        self.unknown_policy = settings['unknown_policy']
+        if self.unknown_policy not in ('map_policy', 'reject_map'):
+            raise NotImplementedError('Unsupported unknown_policy')
         for key, supported in policies.items():
             require_policy(settings, key, supported)
         self.body = BoxBody(parameters['fly_footprint'], settings)
@@ -78,8 +85,9 @@ class FlyStateValidator(StateValidator):
             raise ValueError('Altitude and edge limits must be finite and ordered')
 
     def floor(self, planning_map):
-        if planning_map.get_unknown_regions():
+        if self.unknown_policy == 'reject_map' and planning_map.get_unknown_regions():
             raise NotImplementedError('Unknown occupancy maps are unsupported')
+        planning_map.require_known_occupancy()
         floor = planning_map.get_flat_ground_height()
         if not isfinite(floor):
             raise ValueError('Floor height must be finite')

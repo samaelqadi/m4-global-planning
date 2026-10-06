@@ -95,13 +95,124 @@ succeeded; full package tests passed 188 checks (including lint), with one exist
 skip. All prior 168 passing checks are preserved. Prior saved
 measurements remain historical snapshots; no benchmark was repeated for this change.
 
+## 6. Minimum takeoff/landing contract — documented, physical support blocked
+
+See [TAKEOFF_LANDING_CONTRACT.md](TAKEOFF_LANDING_CONTRACT.md) for the minimum
+operation-edge contract and the evidence/missing-information matrix. Repository requirements
+are geometric test settings and `pending_changes`; no calibrated robot/controller operation
+requirements were found. Keep stationary WALK↔FLY morphing separate from ground-FLY↔airborne-FLY
+physical takeoff/landing, including separate directions, preconditions, swept clearance,
+endpoint phases, motion bounds, terminal guarantees and objective costs. This proposed
+interface is not an implemented physical capability. Current FLY nodes have no phase or
+controller-readiness state; ordinary translations must not be used to bypass future operation
+validation. Reuse shared body geometry where valid; generic altitude/distance limits are not
+physical operation constraints, and `transition_extra_cost` prices stationary morphs only.
+
+YAML `joint_planner.execution_policy` supports only `geometric_only`. Every public joint
+result is labeled `route_kind='geometric'`, `executable=False`, including no-path outcomes.
+`plan(require_execution=True)` rejects the request before search, even for WALK-only paths.
+Existing validators continue to reject explicitly named takeoff/landing motions, morph
+directions and policies enabling unimplemented operations. Floor-to-air translation may be
+geometrically clear but does not authorize physical takeoff or landing. All successful
+geometric routes retain existing segment and total-cost audits; exact optimality is only
+within the constructed graph and configured costs.
+
+Verification from `61fded2`: 89 affected checks passed, then the full package suite passed
+200 checks with one existing copyright skip. Package build, flake8 and pep257 passed;
+all 193 preceding passing checks are preserved. Seven new regressions cover explicit
+operation/policy rejection and the public execution boundary. Saved benchmark results
+were neither modified nor rerun; `git diff --check` is clean.
+
+## 7. Supported map updates and replanning — full snapshot rebuild
+
+`DummyPlanningMap` now accepts R01/R02 `initial_world` as well as the existing `world`
+format. `apply_update(update)` returns an independent map snapshot with an incremented
+revision. Supported operations are `add_obstacles` (3D boxes), `remove_walk_forbidden`
+(exact matching 2D center-path exclusion regions), and `set_walk_cost_regions` (complete
+replacement list of 2D regions with finite nonnegative distance densities). An empty cost
+list clears costs. Unknown operations, malformed/inverted/nonfinite bounds, negative costs,
+and removal of an absent exclusion are rejected without changing the old map. Floor,
+bounds, unknown occupancy, body/controller calibration and arbitrary region/parameter
+patching are not supported update operations.
+
+`JointPlanner.replan(update, start='start', goal='goal')` applies the snapshot update,
+fully rebuilds WALK nodes/edges/connectors, shared anchors, FLY nodes/edges and morphs,
+then runs the existing joint Dijkstra and segment/total-cost audit. YAML
+`joint_planner.replanning_policy` supports only `rebuild_dijkstra`; no incremental search
+or edge/cost reuse is implemented. Replanning switches subsequent `plan()` calls to
+Dijkstra even if the initial planner selected A*. Resolutions, graph budgets, movement/
+terrain/morph costs, seed, cost tolerance and exact endpoint poses retain existing settings.
+Every result contains `map_revision`; `validate_result(result)` rejects older revisions
+before interpreting IDs. IDs are local to each rebuilt graph; do not carry raw ID paths
+across snapshots. `validate_route` is the lower-level auditor for current-graph IDs;
+consumers retaining results should use `validate_result`.
+
+Once a valid update is accepted, old graph/connector/endpoint data are cleared immediately.
+A rebuild failure (for example an invalidated endpoint) leaves the new revision active with
+planning disabled, rather than returning the old route. Invalid updates leave the prior
+snapshot usable. A completed no-path rebuild publishes its new graph and empty path;
+old success results stay stale. Replan timing reports update+rebuild, search+audit and total
+elapsed time separately. These are diagnostics, not a new benchmark or latency guarantee.
+
+R01 verifies the old route is blocked and a newly audited detour is found. R02 verifies
+removing its exclusion opens a lower-cost route. Cost replacement tests show repricing,
+a mode change and restoration after clearing costs; a complete added barrier yields no
+path. Successful updated routes and independent test Dijkstra paths are audited against
+the same updated graph. Invalid-update isolation, invalid-endpoint failure, revision
+rejection, forced Dijkstra selection and unsupported incremental policy are covered.
+All results remain geometric and non-executable; an execution-required replan fails before
+applying its update. Saved benchmark checkpoints are unchanged.
+
+Verification: 70 affected checks passed before the final two dispatch/policy regressions;
+the final full suite passed 215 checks with one existing copyright skip. All preceding
+200 passing checks are preserved, with 15 new replanning checks. Package build, flake8,
+pep257 and `git diff --check` passed.
+
 ## Exact next focused task
 
-Define separately validated takeoff and landing before treating joint paths as executable
-routes. Calibrate heading/attitude and morphing envelopes, clearance/altitude and physical
-costs. Specify acceptable route-cost gaps and search/construction latency/memory budgets
-before choosing weighted search or optimizing scale. Measure repeated live graph queries
-and broader workloads if those budgets require it. Joint waypoint ordering, map updates,
-WALK construction resource limits and continuous-space coverage remain pending. Preserve
-all saved benchmark checkpoints; finite-graph optimality and these bounded measurements
-do not establish physical execution or a final representation selection.
+Replanning is synchronous on complete flat-floor test maps and retains fixed requested
+endpoints. It assumes all changes enter through the supported update/replan API; direct
+mutation of exposed world/config/graph dictionaries, concurrent updates, cross-planner
+revision identity, moving-start localization, transport/version conflicts and real map feeds
+are not supported. After an accepted update that invalidates an endpoint, supply a valid
+new planning request/map rather than reusing an older route. Full rebuild performance and
+operational update frequency/latency budgets remain unmeasured; do not introduce incremental
+search until measured requirements justify it.
+
+Obtain the missing robot/controller pose, clearance, motion and cost requirements in
+TAKEOFF_LANDING_CONTRACT.md before adding physical edges. Takeoff, landing and execution
+remain unsupported. Joint waypoint ordering, general map/update semantics, WALK construction
+resource limits, continuous-space coverage and operational latency/cost-gap requirements
+remain pending. No unrelated benchmarks were rerun, and no commit or push is authorized.
+
+## 8. Map abstraction audit — provisional height-grid input
+
+See MAP_ADAPTER_CONTRACT.md for the shared interface and mock adapter. A future 2D
+costmap with heights is likely, but no upstream schema is available. Planners now consume
+adapter-neutral geometric regions instead of dummy storage fields. HeightGridMap keeps
+row/column storage, native cell updates, height/unknown semantics and cost ownership inside
+the adapter, reusing existing validators and geometry. Ground height is not obstacle top;
+missing occupied intervals cannot certify flight clearance. Both WALK and FLY reject unknown
+coverage. Footprints/margins belong to validators; preinflated grid input is unsupported.
+Before real integration obtain frames, z datum, cost/occupancy/unknown meanings, vertical
+completeness and overhead representation, rasterization/inflation provenance and update
+versioning. The remaining physical execution contract is unchanged. No benchmark rerun,
+commit or push is authorized. Review artifacts are listed in REVIEW_HANDOFF.md.
+
+Adapter verification: full run 236 passed, one existing skip and one formatting-only lint
+failure; after correction 24 affected adapter/lint checks passed. 237 is derived accounting, not a recorded green full-suite run; the preceding full
+replanning run passed 215 checks. The latest recorded focused run passed 24 checks. Package build passed. See REVIEW_HANDOFF.md
+and review_packet/README.md for source packet and evidence. No saved benchmark was modified.
+
+## 9. Adapter review fixes — current clean checks
+
+Confirmed policy/scanning/point-query issues were fixed with explicit `block` versus
+`reject_map`, consistent half-open grid points, per-revision immutable region/floor caches
+and sparse local cell queries. Missing vertical data blocks full columns, never implies free
+flight. Flat-ground limitation remains, with independent rejection tests. Full package run:
+251 passed, one existing copyright skip; build and lint passed. This is a recorded green
+run, superseding earlier aggregate check accounting. Focused before/after query measurements
+are in adapter_query_results; broad benchmark artifacts remain untouched. Further work:
+real schema, frames, height/cost/inflation semantics, live updates/controller requirements,
+cache-memory/construction and operational query budgets. Mock work need not wait for those
+integration inputs. No commit or push is authorized.

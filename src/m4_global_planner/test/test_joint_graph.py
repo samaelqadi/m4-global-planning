@@ -47,6 +47,7 @@ def prepared(name, penalty=None, directions=None, endpoints=None, approach='adap
 
 def audit(planner):
     result = planner.plan()
+    assert result['route_kind'] == 'geometric' and result['executable'] is False
     start, goal = (planner.endpoints[key] for key in ('start', 'goal'))
     cost, path = dijkstra_path(planner.graph, start, goal)
     assert result['success'] == isfinite(cost)
@@ -227,6 +228,7 @@ def test_public_search_configuration(method, case, monkeypatch):
                        search_settings=settings)
     result = planner.plan()
     assert result['success'] and len(calls) == 1
+    assert result['route_kind'] == 'geometric' and result['executable'] is False
     if method == 'dijkstra':
         assert calls == [{}]
     else:
@@ -286,3 +288,22 @@ def test_configured_joint_cost_tolerance():
     planner.validate_route(result['path'], source, target, result['total_cost'] + 1e-7)
     with pytest.raises(ValueError, match='total cost'):
         planner.validate_route(result['path'], source, target, result['total_cost'] + 1e-3)
+
+
+@pytest.mark.parametrize('name', ['T05_flight_bridge', 'T06_walk_only'])
+def test_executable_request_is_rejected_before_search(name, monkeypatch):
+    from m4_global_planner.representation import joint_graph
+
+    planner = prepared(name)
+
+    def forbidden_search(*args, **kwargs):
+        pytest.fail('Execution request must fail before a geometric search')
+
+    monkeypatch.setattr(joint_graph, 'dijkstra', forbidden_search)
+    with pytest.raises(NotImplementedError, match='takeoff, landing or controller'):
+        planner.plan(require_execution=True)
+
+
+def test_execution_configuration_cannot_enable_physical_support():
+    with pytest.raises(NotImplementedError, match='execution_policy'):
+        prepared('T05_flight_bridge', search_settings={'execution_policy': 'executable'})

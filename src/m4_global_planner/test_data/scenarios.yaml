@@ -66,7 +66,7 @@ test_parameters:
     map_policy: complete_test_boxes
     ground_policy: flat_floor
     ground_contact_policy: allow
-    unknown_policy: reject_map
+    unknown_policy: map_policy  # Defer to adapter block/reject_map policy.
     obstacle_contact_policy: collision
     motion_policy: straight_translation
     takeoff_landing_policy: unsupported
@@ -1287,6 +1287,8 @@ fly_benchmark:
 
 # Complete finite geometric graph settings; no physical execution semantics.
 joint_planner:
+  replanning_policy: rebuild_dijkstra  # Full new snapshot; no incremental edge reuse.
+  execution_policy: geometric_only  # Physical takeoff/landing/controller support is absent.
   cost_tolerance: 1.0e-10  # Relative and absolute route/edge cost audit tolerance.
   search_method: dijkstra  # Alternatives: astar, weighted_astar.
   weighted_astar_weight: 1.5  # Applied only by weighted_astar; finite and >= 1.
@@ -1370,3 +1372,17 @@ joint_search_benchmark:
           transition_spatial_resolution: 1.0
           transition_heading_resolution_deg: 90
     - {name: G01_disconnected, scenario: G01_no_path, expected: no_path}
+
+# Provisional mock schema only; upstream 2D costmap + height format is unavailable.
+height_grid_mock:
+  resolution: 1.0
+  origin: [0.0, 0.0]
+  vertical_bounds: [0.0, 3.0]
+  default_cost: 0.0  # Nonnegative extra WALK cost per meter, not occupancy probability.
+  unknown_policy: block  # Unknown columns block both modes; reject_map is strict.
+  inflation_policy: raw_geometry  # Footprints/margins belong to existing validators.
+  height_reference: map_z
+  # Cells are supplied by mock callers: rows[y][x], ground_height, occupied_intervals,
+  # optional obstacle_top_height, cost, walk_forbidden, unknown.
+  # occupied_intervals: [] means explicitly clear within vertical_bounds;
+  # absent/null intervals mean unknown, even when an obstacle top is supplied.

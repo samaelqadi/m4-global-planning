@@ -16,8 +16,8 @@ def footprint_corners(x, y, heading, length, width):
 
 
 def overlaps_box(corners, heading, box):
-    xmin, ymin = box['min'][:2]
-    xmax, ymax = box['max'][:2]
+    xmin, ymin = box.lower[:2]
+    xmax, ymax = box.upper[:2]
 
     box_corners = [
         (xmin, ymin),
@@ -67,8 +67,11 @@ def segment_intersects_region(start, end, region):
 
 def segment_region_interval(start, end, region):
     """Return the covered fraction interval, including boundary contact."""
+    if region.upper_open and any(a == b == upper for a, b, upper in zip(
+            (start.x, start.y), (end.x, end.y), region.upper)):
+        return None
     return segment_box_interval(
-        (start.x, start.y), (end.x, end.y), region['min'][:2], region['max'][:2],
+        (start.x, start.y), (end.x, end.y), region.lower[:2], region.upper[:2],
     )
 
 
@@ -100,6 +103,12 @@ def segment_box_interval(start, end, lower, upper):
 
 def disk_overlaps_box(x, y, radius, box):
     """Check disk overlap with a box projection; touching counts as collision."""
-    nearest_x = max(box['min'][0], min(x, box['max'][0]))
-    nearest_y = max(box['min'][1], min(y, box['max'][1]))
+    nearest_x = max(box.lower[0], min(x, box.upper[0]))
+    nearest_y = max(box.lower[1], min(y, box.upper[1]))
     return hypot(x - nearest_x, y - nearest_y) <= radius
+
+
+def bounds_xy(points):
+    """Conservative horizontal query bounds for a footprint or center segment."""
+    return (tuple(min(p[i] for p in points) for i in range(2)),
+            tuple(max(p[i] for p in points) for i in range(2)))

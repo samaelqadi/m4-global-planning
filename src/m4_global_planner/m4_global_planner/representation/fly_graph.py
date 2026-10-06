@@ -41,14 +41,14 @@ def lattice_points(planning_map, validator, settings, limit):
         raise ValueError('Fine resolution cannot exceed coarse resolution')
     lower, upper = usable_bounds(planning_map, validator)
     obstacles = []
-    for obstacle in planning_map.get_obstacles_3d():
+    for obstacle in planning_map.get_occupied_volumes():
         lo = tuple(
             a - b - validator.body.tolerance
-            for a, b in zip(obstacle['min'], validator.body.upper)
+            for a, b in zip(obstacle.lower, validator.body.upper)
         )
         hi = tuple(
             a - b + validator.body.tolerance
-            for a, b in zip(obstacle['max'], validator.body.lower)
+            for a, b in zip(obstacle.upper, validator.body.lower)
         )
         obstacles.append((lo, hi))
     visited = 0

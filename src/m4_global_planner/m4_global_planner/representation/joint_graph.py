@@ -1,11 +1,13 @@
 """Finite joint geometric WALK/FLY search; no takeoff or landing model."""
 
+from copy import deepcopy
 from math import dist, isclose, isfinite
+from time import perf_counter
 
 from m4_global_planner.astar import astar
-from m4_global_planner.graph import Edge, MotionMode, Node
+from m4_global_planner.graph import Edge, Graph, MotionMode, Node
 from m4_global_planner.representation.fly_graph import build_graph as build_fly_graph
-from m4_global_planner.representation.fly_validator import position
+from m4_global_planner.representation.fly_validator import position, require_policy
 from m4_global_planner.representation.states import PoseState
 from m4_global_planner.search_comparison import dijkstra
 from m4_global_planner.walk_comparison import explicit_lattice, Motions
@@ -15,6 +17,16 @@ class JointPlanner:
     """Search one complete geometric graph; Dijkstra is the default."""
 
     def __init__(self, parameters, settings, planning_map, builder, endpoints, seed=0):
+        require_policy(
+            {'execution_policy': settings.get('execution_policy', 'geometric_only')},
+            'execution_policy', 'geometric_only',
+        )
+        require_policy(
+            {'replanning_policy': settings.get('replanning_policy', 'rebuild_dijkstra')},
+            'replanning_policy', 'rebuild_dijkstra',
+        )
+        self.parameters, self.settings = deepcopy(parameters), deepcopy(settings)
+        self.request_endpoints, self.seed = dict(endpoints), seed
         self.cost_tolerance = settings.get('cost_tolerance', 1e-10)
         if not isfinite(self.cost_tolerance) or self.cost_tolerance <= 0:
             raise ValueError('Cost tolerance must be finite and positive')
@@ -65,6 +77,7 @@ class JointPlanner:
         # All movement costs bound Euclidean distance by at least this rate;
         # stationary morphs have zero displacement and nonnegative cost.
         self.scale = min(self.fly_rate, self.motions.edges.cost.rate)
+        self._ready = True
 
     @staticmethod
     def pose(node):
@@ -72,6 +85,8 @@ class JointPlanner:
 
     def validate_route(self, route, start, goal, cost):
         """Recompute every primitive sweep, morph and cost from the current map."""
+        if not self._ready:
+            raise RuntimeError('No valid graph for current map')
         if not route or route[0] != start or route[-1] != goal:
             raise ValueError('Route does not preserve endpoints')
         total = 0.0
@@ -112,7 +127,14 @@ class JointPlanner:
                        abs_tol=self.cost_tolerance):
             raise ValueError('Invalid total cost')
 
-    def plan(self, start='start', goal='goal'):
+    def plan(self, start='start', goal='goal', *, require_execution=False):
+        if require_execution:
+            raise NotImplementedError(
+                'Executable routes are unsupported: geometric validation does not validate '
+                'takeoff, landing or controller execution'
+            )
+        if not self._ready:
+            raise RuntimeError('No valid graph for current map')
         source, target = self.endpoints[start], self.endpoints[goal]
         if self.search_method == 'dijkstra':
             result = dijkstra(self.graph, source, target)
@@ -122,4 +144,38 @@ class JointPlanner:
                            heuristic_weight=weight)
         if result['success']:
             self.validate_route(result['path'], source, target, result['total_cost'])
+        result.update(route_kind='geometric', executable=False, map_revision=self.map.revision)
+        return result
+
+    def validate_result(self, result, start='start', goal='goal'):
+        """Reject results from an older map before interpreting their graph IDs."""
+        if result.get('map_revision') != self.map.revision:
+            raise ValueError('Stale map revision')
+        if not self._ready:
+            raise RuntimeError('No valid graph for current map')
+        if result['success']:
+            self.validate_route(result['path'], self.endpoints[start], self.endpoints[goal],
+                                result['total_cost'])
+
+    def replan(self, update, start='start', goal='goal', *, require_execution=False):
+        """Rebuild all planning data on a new snapshot, then run joint Dijkstra."""
+        if require_execution:
+            # Reuse the public execution guard before applying any update.
+            return self.plan(start, goal, require_execution=True)
+        began = perf_counter()
+        updated_map = self.map.apply_update(update)
+        # An accepted update invalidates old data even if rebuilding later fails.
+        self.map, self._ready = updated_map, False
+        self.graph, self.paths, self.endpoints = Graph(), {}, {}
+        settings = {**self.settings, 'search_method': 'dijkstra'}
+        rebuilt = JointPlanner(self.parameters, settings, updated_map, self.builder,
+                               self.request_endpoints, self.seed)
+        built = perf_counter()
+        result = rebuilt.plan(start, goal)
+        finished = perf_counter()
+        # Publish the complete validated snapshot, including a valid no-path graph.
+        self.__dict__.update(rebuilt.__dict__)
+        result.update(rebuild_ms=(built - began) * 1000,
+                      search_and_audit_ms=(finished - built) * 1000,
+                      replanning_ms=(finished - began) * 1000)
         return result

@@ -1,6 +1,7 @@
 from math import isclose, isfinite
 
 from m4_global_planner.representation.geometry import (
+    bounds_xy,
     footprint_corners,
     overlaps_box,
 )
@@ -29,6 +30,7 @@ class WalkStateValidator(StateValidator):
         ):
             return False
 
+        planning_map.require_known_occupancy()
         ground = planning_map.get_ground_height(state.x, state.y)
         if ground is None or not isclose(state.z, ground):
             return False
@@ -55,9 +57,9 @@ class WalkStateValidator(StateValidator):
         if state.z < zmin or state.z + self.height > zmax:
             return False
 
-        for obstacle in planning_map.get_obstacles_3d():
-            bottom = obstacle['min'][2]
-            top = obstacle['max'][2]
+        for obstacle in planning_map.query_occupied_volumes(*bounds_xy(corners)):
+            bottom = obstacle.lower[2]
+            top = obstacle.upper[2]
 
             if state.z + self.height < bottom or state.z > top:
                 continue
