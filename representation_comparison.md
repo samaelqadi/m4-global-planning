@@ -281,3 +281,190 @@ All audited A* costs match Dijkstra. G02's spatial proposal graph alone gives co
 In G05 dense clutter Hybrid costs 0.34% more; in G03 it costs 0.30% less. No material cost winner appears in these saved matched cases. Hybrid retains continuous pose values but keeps one best representative per 0.25 m XY bin and 45° heading bin, with 0.5–3.0 m motion steps and an 80,000 expansion limit. The lattice reference uses 0.5 m spatial and 45° heading spacing. These discretizations, bin dominance, finite expansion limit, and the limited successful overlap make the comparison reference-relative; it is not a proof of Hybrid optimality.
 
 The existing provisional Hybrid WALK and adaptive-lattice FLY selections remain unchanged. Executable multimodal minimum-cost planning and real-robot assumptions remain pending.
+
+## Stage 11 — joint geometric WALK–FLY graph (2026-10-06)
+
+Continued from committed checkpoint `b591515`; this stage is uncommitted. Reused the
+explicit WALK lattice, primitive validators/costs, shared mandatory anchors and existing
+FLY graph builders. Hybrid remains a separate provisional WALK planner. One A* query
+chooses mode sequence and transition locations by total cost over the complete configured
+joint graph. Only new exact WALK poses get local bidirectional composite connectors;
+the existing lattice backbone retains its primitive edges. Connector primitive paths are
+retained and audited. YAML `joint_planner` settings reuse FLY configuration through aliases.
+
+Supported transitions are exactly directed `walk_to_fly` and `fly_to_walk` stationary
+morphs at equal x/y/z, with a valid heading-aware WALK pose, yaw-free FLY pose and clear
+fixed axis-aligned morphing envelope containing both bodies. Direction policies can enable
+only one direction. FLY translation may touch the known flat floor, so bridge tests can
+use ground-level FLY geometry. A ground morph followed by a geometric translation does
+not establish takeoff; a translation followed by a ground morph does not establish landing.
+Takeoff, landing, attitude/yaw evolution, dynamics, energy and physical execution are
+unsupported. The envelope and costs are test values, not measured robot properties.
+
+Independent test Dijkstra traverses the identical complete constructed joint graph, with
+identical endpoints and edge costs. Every successful A* and Dijkstra route is checked for
+exact endpoints, state validity, each primitive WALK sweep, each FLY sweep, each stationary
+morph, individual edge costs and summed route cost. Euclidean heuristic scale is the minimum
+WALK/FLY distance rate; nonnegative terrain and motion/morph penalties preserve admissibility.
+The proof is graph-relative, not continuous-space or physical optimality.
+
+| Existing scenario / configuration | Verified outcome |
+|---|---|
+| T01 open | Joint route; exact mixed-mode and off-grid endpoints preserved. |
+| T02 blocked morph | No morph at (2.5, 2.5); a WALK→FLY request there travels to a clear anchor and returns geometrically. |
+| T03 center zone | All inserted morphs remain at x=5. |
+| T04 multiple choices | FLY rate 0.2, morph penalty 0: cost 1.6, morphs at (1,2) and (9,2). Penalty 100: WALK-only cost 10 with terrain costs. Restricting first morph to x≥5 raises cost and shifts its location. |
+| T05 required bridge | Adaptive FLY graph: 914 nodes / 10856 directed edges; cost 14.823090672 with penalty 3 and two morphs. Both FLY topologies match Dijkstra at penalties 0, 3, 17; penalty increments add exactly twice the increment. One-way WALK→FLY policy yields no WALK-goal route. |
+| T06 walk only | Cost 8, no morph anchors, no mode changes. |
+
+Additional checks preserve exact WALK lattice adjacency/costs at T05, cover a trivial
+identical endpoint, and reject corrupt totals, corrupt edge prices, stale morph clearance
+and invalid penalties. All 23 new joint tests pass. `colcon build --packages-select m4_global_planner`
+succeeded. Full `colcon test` passed 156 tests (including flake8 and pep257), with
+one existing copyright-template skip; `git diff --check` is clean.
+
+Pending: separately validated takeoff/landing, calibrated envelopes/attitude/physical costs,
+unknown/non-flat world support, joint waypoint and map-update integration, WALK construction
+resource budgets, coverage and performance measurement. Sampling and finite neighbor policies
+can still cause false disconnection; no-path means no route in this graph. Synthetic endpoint
+requests were supplied for T scenarios lacking endpoints; T04 uses the existing terrain regions
+and the established synthetic distance-density interpretation. Historical benchmark outputs
+were preserved; no selection or physical execution claim follows from these checks.
+
+## Stage 12 — matched Dijkstra, A* and weighted A* (2026-10-06)
+
+The comparison is saved in `joint_search_results/comparison.md` (one concise table),
+`raw.jsonl` (all 144 timed runs), `graph_*.json` / `graph_*.pickle` (12 once-built
+configuration snapshots), `manifest.json`, copied YAML, and `audit.json`. The runner is
+`python3 -m m4_global_planner.joint_search_benchmark --output <new-directory>`.
+It reuses `JointPlanner`, existing geometry/costs/anchors, scenario loading, and the
+existing `metrics.run_with_metrics` timer. Weighted A* extends the existing A* loop with
+`heuristic_weight`; Dijkstra uses an independent uniform-cost loop. Neither search mutates
+the graph. Hashes verify ordered nodes/edges, endpoints and WALK connector primitives
+before and after searches; every method loads the same serialized graph per configuration.
+
+Three fresh workers per method/configuration ran serially, with method order rotated
+between repeats and no concurrent tests. Weights 1.5 and 2 are set in YAML. Construction,
+preparation/reference audit, search, route audit and I/O are separated. Search timing uses
+an uninstrumented call; an identical separate tracemalloc replay measures Python search
+allocation peak. Timed-worker RSS high-water, pre-search baseline and growth are also saved.
+RSS includes imports and snapshot loading and can hide search allocations; tracemalloc
+excludes the pre-existing graph and is not total RAM. All timed/replayed successful paths
+and costs are revalidated. Unique explored states, total pops (including re-expansions),
+generated states, wall/CPU time and per-run memory appear in raw rows.
+
+Cases cover T01–T06, T04 low/high transition penalties, T05 adaptive/roadmap/one-way
+variants, and supported G04 scale, G05 clutter and G01 disconnection. T requests without
+endpoints are explicitly configured synthetic requests. G04/G05 use 1 m / 90 degree WALK
+and anchor sampling to bound construction; those graphs are not the earlier fine-resolution
+benchmark graphs. All methods matched expected outcomes: each returned 30 valid routes in
+36 attempts, with six correct no-path results. Across 12 graphs, all 269570 directed edges
+passed the heuristic checks: distance times the minimum movement rate is no greater than
+edge cost, h(goal)=0, and goal-specific consistency holds within 1e-9 (maximum floating
+residual 7.11e-15). Nonnegative penalties, zero-displacement morphs and Euclidean triangle
+inequality establish the analytical lower bound for these graphs. A* matched independent
+Dijkstra minimum costs in all 36 runs. Weighted gaps are measured only; no weighted bound
+or continuous-space optimality claim is made.
+
+Construction median was 363.9 ms (165.6–1819.9 ms). Pooled search medians were 1.620 ms
+(Dijkstra), 1.544 ms (A*), 0.538 ms (weight 1.5) and 0.527 ms (weight 2). Maximum measured
+weighted cost gaps were 5.574% and 19.148%. Matched cases expose tradeoffs hidden by pooled
+medians: G04's 5229 nodes / 54876 edges cost 45.597980 for both exact methods, with median
+search 12.495 ms for Dijkstra and 4.620 ms for A*. Weighted costs were 47.406689 and
+54.329002. G05's 2360 nodes / 38388 edges cost 23.549618 for both exact methods, but
+Dijkstra took 6.211 ms versus A*'s 12.480 ms. Weight 1.5 took 27.768 ms and 5382 pops for
+928 unique explored states, versus Dijkstra's 2317 pops; weight 2 took 7.272 ms and cost
+27.162610 (15.342% gap). Faster exploration is not guaranteed by a larger weight or fewer
+unique explored states. Method tie-breaking uses numeric node IDs; fixed graph order and
+seed preserve repeatable route/cost/count results.
+
+Recommend Dijkstra as the simplest exact-cost method for the current bounded workloads:
+its per-case median search times were 0.175–12.495 ms, graph construction dominated, and
+no hard latency target or acceptable suboptimality threshold was supplied. Retain A* as
+the exact alternative for larger or repeatedly queried graphs where its heuristic savings
+are measured; it clearly helped G04 but regressed G05. Keep weighted A* experimental until
+an acceptable cost gap and workload-specific latency requirement are defined. This is a
+recommendation from the comparison; the existing `JointPlanner.plan()` A* API remains
+unchanged. Hybrid's separate provisional WALK status is also unchanged.
+
+Validation preserved all 156 prior passing checks and added 12 focused search/benchmark
+checks. One full regression run passed 167 tests with the existing copyright skip and a
+formatting-only lint failure; the formatting was corrected and lint plus the affected
+benchmark checks rerun successfully. Final package build and focused checks are recorded
+in `joint_search_results/validation.md`. No tests ran concurrently with measurements.
+Results are local WSL2 host observations, with only three repeats and uncontrolled other
+host load; P95 values are empirical nearest-rank summaries, not latency guarantees.
+
+Remaining limits: sampled finite graphs can falsely disconnect continuous free space;
+heuristic effectiveness varies with cheap FLY rates, costs, headings and clutter. Exact
+costs apply only within each identical configured graph. Unknown/non-flat maps, calibrated
+body/morphing/attitude models, takeoff/landing, dynamics, physical execution, joint waypoint
+ordering, map-update integration and WALK graph resource budgets remain unsupported or
+pending. Shared saved graphs remove rebuild noise but exclude cold graph loading and
+construction from search timing; repeated live graph-query performance and stronger scale
+or latency requirements remain unmeasured. No commit or push was made.
+
+## Stage 13 — Dijkstra public default (2026-10-06)
+
+`JointPlanner.plan(start='start', goal='goal')` now dispatches to the existing Dijkstra
+implementation by default. YAML `joint_planner.search_method` selects `dijkstra`, `astar`
+or `weighted_astar`; `weighted_astar_weight` configures the latter (default 1.5, finite
+and at least 1). Omitted search settings retain the Dijkstra default. Ordinary A* always
+uses weight 1 and the existing minimum movement-rate heuristic. Invalid methods and
+weights are rejected before graph construction. Result fields, endpoint naming, graph
+construction, directed morph validation and per-route primitive/cost audit are preserved.
+No additional algorithm or dispatch abstraction was introduced.
+
+Twenty public-interface checks cover all three configured methods on T06 WALK-only,
+T05 required flight bridge, T02 detour around blocked morphing, and T04 low/high penalty
+mode choices; they also verify YAML/default fallback and reject invalid configurations.
+They check the selected implementation and heuristic weight, audit every returned segment
+and total, and compare exact methods to independent test Dijkstra on the same graph.
+Weighted results are checked for valid cost and route without asserting optimality or a
+weighted bound. Existing directed/no-path, exact endpoint and corruption checks remain.
+
+Dijkstra and admissible-heuristic A* minimize only the cost of the constructed finite graph
+with configured movement, terrain and transition costs. Weighted A* may return a higher
+cost. Stationary WALK→FLY and FLY→WALK morphs remain geometric operations; takeoff,
+landing, dynamics and physical execution are unsupported. Sampling coverage, calibrated
+costs/envelopes/attitude, waypoint/map-update integration, WALK construction budgets and
+operational latency/cost-gap requirements remain pending. Hybrid stays separately
+provisional. The Stage 12 saved measurements were preserved; no benchmarks were repeated.
+The stage was validated before the publication review below.
+
+Verification: `colcon build --packages-select m4_global_planner` succeeded; full package
+`colcon test` passed **188 checks**, including flake8 and pep257, with one existing
+copyright-template skip. All 168 prior passing checks are preserved. No benchmark output
+was regenerated. `git diff --check` is clean.
+
+## Stage 14 — publication review against b591515 (2026-10-06)
+
+Reviewed only the planner integration, configurable searches, tests, YAML, documentation
+and saved joint benchmark artifacts added or changed after `b591515`. Left the unrelated
+untracked `src/m4_first_test/` package and empty top-level planner `dummy_map.py` untouched
+and outside the commit. Existing tracked WALK/FLY results and all saved joint measurement
+files were preserved; no benchmark was rerun.
+
+No duplicated graph builder or weighted search loop was introduced. Dijkstra remains
+independent of the A* search loop for the cost reference; its reuse in public planning
+is intentional. Search selection, movement/morph penalties, representation settings,
+benchmark weights/repeats/requests and sampling budgets are configurable. The review moved
+the joint audit's previously embedded relative/absolute cost tolerance into YAML
+`joint_planner.cost_tolerance` (default 1e-10 for existing callers), with finite-positive
+validation and focused regressions. Numerical comparisons allow this configured tolerance;
+optimality claims remain limited to the constructed graph and configured costs.
+
+Saved benchmark manifests, copied YAML and `audit.json` record the measurement-time source
+and settings. Later default-search and review changes intentionally differ from those source
+fingerprints; the historical `source_hashes_match` field describes the audit at measurement
+time, not the newly published sources. Existing-directory resume remains protected against
+source/config changes. Local pickle snapshots are historical trusted artifacts for the
+benchmark worker's direct graph queries; their old planner instances predate later settings
+attributes. No claim of physical takeoff, landing, dynamics, continuous completeness or
+weighted cost bounds is supported. Those limits and operational requirements remain pending.
+
+Review verification: package build succeeded and the affected joint-planner/search/lint
+checks passed **62 tests** (132 deselected). This includes five new tolerance regressions;
+the preceding full package run passed 188 checks with one existing copyright skip.
+Saved-result integrity checks confirmed 144 validated rows and all 12 snapshot hashes.
+No measurements were repeated. `git diff --check` passed before staging.

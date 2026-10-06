@@ -1,0 +1,16 @@
+{
+  "timed_runs": 144,
+  "configurations": 12,
+  "repeats_per_method_configuration": 3,
+  "validated_runs": 144,
+  "successful_routes": 120,
+  "source_hashes_match": true,
+  "snapshot_hashes_match": true,
+  "all_edges_heuristic_checked": 269570,
+  "maximum_consistency_error": 7.105427357601002e-15,
+  "maximum_lower_bound_error": 0.0,
+  "heuristic_tolerance": 1e-09,
+  "cpu_model": "12th Gen Intel(R) Core(TM) i7-1255U",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "isolation": "Serial benchmark workers; no concurrent package tests. Other host load was not controlled."
+}

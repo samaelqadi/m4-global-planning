@@ -1,5 +1,5 @@
 import heapq
-from math import sqrt
+from math import isfinite, sqrt
 
 
 def heuristic(node, goal):
@@ -26,7 +26,14 @@ def build_path(parent, goal_id):
     return path
 
 
-def astar(graph, start_id, goal_id, heuristic_scale=1.0):
+def astar(graph, start_id, goal_id, heuristic_scale=1.0, heuristic_weight=1.0):
+    if not isfinite(heuristic_scale) or heuristic_scale < 0:
+        raise ValueError('Heuristic scale must be finite and nonnegative')
+    if not isfinite(heuristic_weight) or heuristic_weight < 1:
+        raise ValueError('Heuristic weight must be finite and at least one')
+    scale = heuristic_scale * heuristic_weight
+    if not isfinite(scale):
+        raise ValueError('Weighted heuristic scale must be finite')
     # get start and goal nodes
     start = graph.get_node(start_id)
     goal = graph.get_node(goal_id)
@@ -45,9 +52,10 @@ def astar(graph, start_id, goal_id, heuristic_scale=1.0):
 
     # counts how many nodes A* actually checks
     nodes_expanded = 0
+    explored = set()
 
     # calculate the first heuristic
-    start_h = heuristic(start, goal) * heuristic_scale
+    start_h = heuristic(start, goal) * scale
 
     # store f cost, g cost and node id
     heapq.heappush(open_list, (start_h, 0.0, start_id))
@@ -61,6 +69,7 @@ def astar(graph, start_id, goal_id, heuristic_scale=1.0):
             continue
 
         nodes_expanded += 1
+        explored.add(current_id)
 
         # stop when the goal is reached
         if current_id == goal_id:
@@ -69,6 +78,7 @@ def astar(graph, start_id, goal_id, heuristic_scale=1.0):
                 'path': build_path(parent, goal_id),
                 'total_cost': g_cost[goal_id],
                 'nodes_expanded': nodes_expanded,
+                'nodes_explored': len(explored),
                 'nodes_generated': len(generated_nodes)
             }
 
@@ -90,7 +100,7 @@ def astar(graph, start_id, goal_id, heuristic_scale=1.0):
                 neighbor = graph.get_node(neighbor_id)
 
                 # estimate remaining distance to the goal
-                h = heuristic(neighbor, goal) * heuristic_scale
+                h = heuristic(neighbor, goal) * scale
 
                 # A* priority
                 f = new_g + h
@@ -103,5 +113,6 @@ def astar(graph, start_id, goal_id, heuristic_scale=1.0):
         'path': [],
         'total_cost': float('inf'),
         'nodes_expanded': nodes_expanded,
+        'nodes_explored': len(explored),
         'nodes_generated': len(generated_nodes)
     }

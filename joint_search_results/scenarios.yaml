@@ -1287,9 +1287,6 @@ fly_benchmark:
 
 # Complete finite geometric graph settings; no physical execution semantics.
 joint_planner:
-  cost_tolerance: 1.0e-10  # Relative and absolute route/edge cost audit tolerance.
-  search_method: dijkstra  # Alternatives: astar, weighted_astar.
-  weighted_astar_weight: 1.5  # Applied only by weighted_astar; finite and >= 1.
   endpoint_radius: 3.0
   fly_approach: adaptive_lattice
   fly_graph: *fly_graph_settings

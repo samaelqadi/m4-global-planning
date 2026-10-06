@@ -1,0 +1,288 @@
+{
+  "signature": "c0b9fe6db905c626e3d9535cdbbe76f8dae07ee02d0f686f78c6239aced1c377",
+  "sources": {
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/scenario_loader.py": "34240543e135303673a051a46370f21dceadd2c1fc6f2ff6ebf2678f6ca0e2cc",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/dummy_graph.py": "c33b938747e313c03d3ab3e9b69f6e28269978d11e9ddc03485259feec312942",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/fly_benchmark.py": "a8c7374d20076096305d37de07d3cd5f240c6c73ff594ab2fdcb34e7041ba0af",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/metrics.py": "0537a6e627a74f3f135d1e32d5720653c5c67780937c032ef878edf689511fa7",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/astar.py": "9f000e9460e8a073578045baf6d0dffba0dead4542ac0b62914a0f586141d54d",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/walk_benchmark.py": "d65bc6e33eda74eda224664a6cd07f228bec5c1e2455941b2815c00f121e9af7",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/walk_comparison.py": "3161deabe5a091903863368f8433d07529376fcb3d1f3cdfda6c37cb5546ce64",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/search_comparison.py": "f784087e078a098788cda828916b04acb33eee2d4be661ba4c74b5715cef5790",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/joint_search_benchmark.py": "3f88cb345da01d89bb129b2bb9756c9a915a0b4d19db7cb0438d34844a153130",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/graph.py": "a387115725446d260e3cd715c95ccb256562100cac2c3cc334ff33b045bbbe74",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/dummy_map.py": "c9bb18023dec61e4629fdefe8fb028b200c94478e7b7959191a619509d4141b2",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/benchmark.py": "36e98cf872569a50f3765b9ef632ce2b1d05d7cd41741a8390b7aba0dc5522cf",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/joint_graph.py": "fdf3dfea496e9557b2d30f45d7a65101dd41717be1a98ae5da6866851f5598fe",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/interfaces.py": "deda69c25ab97dc4cbd05b12e1ad41f8b797a085eccc47d697978e39b397754e",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_validator.py": "c71048c39342d87f6e7c122671979f96d806c6437ef1850c6052f296bfecf28f",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_edges.py": "5158e01a00ff3f4ede6d041df8c52f2d0470e30aeed170238486f24195c64bb1",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/geometry.py": "d0a119ad1877bc1a3ea3a80fdbddecb7fab614a8c9a1119cdefc457b5b3f9651",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_costs.py": "6472d73b14cc12131197199670eff7719c28d8073addf4b5f0ef6187be6b8888",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/fly_validator.py": "f155cba1e35dbec2a16c2d40e52858a81ae0fdb8750df7582c6bcdfda80a9139",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/states.py": "4f87ed096f54625936246aa5dd2b9d38e1aec746be327b7ce13c3e98beae56be",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_graph.py": "25e75a9b365f0bd9f81e49960a6bf5d7eb50cfec64f649e2d3df533839516c56",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/fly_graph.py": "83c2dc3488a288e636067091e8d6c0ec1ce271e57fa5e0f2f0121b8a54c88ccb",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/state_lattice.py": "ea354772e9abd9a5a40f794b8d1b1bc2ab127ac5eaccbfea2ed0b399244ee78c",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/anchors.py": "96fc8f4052a01271e7f5c767cdc41a02295a27d0b6701daaa2be8ab19109bd77",
+    "/home/samat1/m4_ws/src/m4_global_planner/test_data/scenarios.yaml": "92ba34d5afd9ed24c9e0d4412ee22ffad32eff18117d01b177fe54b9feaf3a1d"
+  },
+  "settings": {
+    "repeats": 3,
+    "seed": 11,
+    "timeout_seconds": 180,
+    "heuristic_tolerance": 1e-09,
+    "cost_tolerance": 1e-07,
+    "weighted_astar_weights": [
+      1.5,
+      2.0
+    ],
+    "requests": {
+      "T01_open_transition": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            1,
+            2,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "fly",
+          "position": [
+            4,
+            2,
+            1
+          ]
+        }
+      },
+      "T02_blocked_morphing_space": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            2.5,
+            2.5,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "fly",
+          "position": [
+            2.5,
+            2.5,
+            0
+          ]
+        }
+      },
+      "T03_only_one_transition_zone": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            1,
+            2,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "fly",
+          "position": [
+            9,
+            2,
+            0
+          ]
+        }
+      },
+      "T04_multiple_transition_choices": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            1,
+            2,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "walk",
+          "position": [
+            9,
+            2,
+            0
+          ],
+          "heading_deg": 0
+        }
+      },
+      "G04_large_open_world": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            1,
+            1,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "walk",
+          "position": [
+            29,
+            29,
+            0
+          ],
+          "heading_deg": 0
+        }
+      },
+      "G05_dense_clutter": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            1,
+            1,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "walk",
+          "position": [
+            11,
+            11,
+            0
+          ],
+          "heading_deg": 0
+        }
+      },
+      "G01_no_path": {
+        "start": {
+          "mode": "walk",
+          "position": [
+            2,
+            3,
+            0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "mode": "walk",
+          "position": [
+            8,
+            3,
+            0
+          ],
+          "heading_deg": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "name": "T01",
+        "scenario": "T01_open_transition",
+        "expected": "success"
+      },
+      {
+        "name": "T02",
+        "scenario": "T02_blocked_morphing_space",
+        "expected": "success"
+      },
+      {
+        "name": "T03",
+        "scenario": "T03_only_one_transition_zone",
+        "expected": "success"
+      },
+      {
+        "name": "T04_low_penalty",
+        "scenario": "T04_multiple_transition_choices",
+        "expected": "success",
+        "parameter_overrides": {
+          "transition_extra_cost": 0
+        },
+        "planner_overrides": {
+          "fly_graph": {
+            "distance_cost_per_meter": 0.2
+          }
+        }
+      },
+      {
+        "name": "T04_high_penalty",
+        "scenario": "T04_multiple_transition_choices",
+        "expected": "success",
+        "parameter_overrides": {
+          "transition_extra_cost": 100
+        },
+        "planner_overrides": {
+          "fly_graph": {
+            "distance_cost_per_meter": 0.2
+          }
+        }
+      },
+      {
+        "name": "T05",
+        "scenario": "T05_flight_bridge",
+        "expected": "success"
+      },
+      {
+        "name": "T05_roadmap",
+        "scenario": "T05_flight_bridge",
+        "expected": "success",
+        "planner_overrides": {
+          "fly_approach": "sparse_roadmap"
+        }
+      },
+      {
+        "name": "T05_one_way",
+        "scenario": "T05_flight_bridge",
+        "expected": "no_path",
+        "parameter_overrides": {
+          "transition_validation": {
+            "supported_directions": [
+              "walk_to_fly"
+            ]
+          }
+        }
+      },
+      {
+        "name": "T06",
+        "scenario": "T06_walk_only",
+        "expected": "success"
+      },
+      {
+        "name": "G04_scale",
+        "scenario": "G04_large_open_world",
+        "expected": "success",
+        "parameter_overrides": {
+          "spatial_resolution": 1.0,
+          "heading_resolution_deg": 90,
+          "mandatory_anchors": {
+            "transition_spatial_resolution": 1.0,
+            "transition_heading_resolution_deg": 90
+          }
+        }
+      },
+      {
+        "name": "G05_clutter",
+        "scenario": "G05_dense_clutter",
+        "expected": "success",
+        "parameter_overrides": {
+          "spatial_resolution": 1.0,
+          "heading_resolution_deg": 90,
+          "mandatory_anchors": {
+            "transition_spatial_resolution": 1.0,
+            "transition_heading_resolution_deg": 90
+          }
+        }
+      },
+      {
+        "name": "G01_disconnected",
+        "scenario": "G01_no_path",
+        "expected": "no_path"
+      }
+    ]
+  },
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39"
+}

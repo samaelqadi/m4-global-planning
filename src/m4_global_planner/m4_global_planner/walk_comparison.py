@@ -203,7 +203,7 @@ def spatial_graph(approach, parameters, settings, motions, start, goal, seed):
     return graph, points, ids, endpoints
 
 
-def explicit_lattice(parameters, settings, motions, start, goal):
+def explicit_lattice(parameters, settings, motions, start, goal, attachments=()):
     generator = ForwardWalkGraphGenerator(
         WalkMotionNeighbors(parameters),
         StateLatticeGenerator(parameters['spatial_resolution'],
@@ -215,7 +215,18 @@ def explicit_lattice(parameters, settings, motions, start, goal):
     poses = {n.node_id: PoseState(n.x, n.y, n.z, n.yaw) for n in graph.nodes.values()}
     ids = {state: node_id for node_id, state in poses.items()}
     paths = {}
-    for state, outgoing in ((start, True), (goal, False)):
+    extra = sorted(set(attachments), key=lambda state: (
+        state.x, state.y, state.z, state.heading,
+    ))
+    # Lattice anchors already have complete primitive successors. Only new
+    # exact poses need local, bidirectional connector proposals.
+    missing = [state for state in extra if state not in ids]
+    for state in missing:
+        node_id = add_point(graph, (state.x, state.y, state.z), state.heading)
+        poses[node_id], ids[state] = state, node_id
+    proposals = [(start, True), (goal, False)] if start is not None else []
+    proposals += [(state, direction) for state in missing for direction in (True, False)]
+    for state, outgoing in proposals:
         if state not in ids:
             node_id = add_point(graph, (state.x, state.y, state.z), state.heading)
             poses[node_id], ids[state] = state, node_id

@@ -1,0 +1,124 @@
+{
+  "construction_ms": 196.37894200423034,
+  "preparation_audit_ms": 7.109242993465159,
+  "construction_peak_rss_mib": 25.29296875,
+  "heuristic": {
+    "edges_checked": 10660,
+    "goal_heuristic": 0.0,
+    "maximum_bound_error": 0.0,
+    "maximum_consistency_error": 4.440892098500626e-16,
+    "tolerance": 1e-09
+  },
+  "scale": 1.0,
+  "nodes": 845,
+  "edges": 10660,
+  "reference_cost": 6.123630368487103,
+  "reference_success": true,
+  "graph_sha256": "a1361b5d9d96c0fe60a607ecd3a3b513ab002b97be52162f1504e57f61342a03",
+  "snapshot_sha256": "6849128121ab83b0f038f524c5e9b308101274c39c17dc1faf6b2ac74d6e79e2",
+  "parameters": {
+    "test_only": true,
+    "spatial_resolution": 0.5,
+    "heading_resolution_deg": 45,
+    "straight_walk": {
+      "max_distance": 3.0,
+      "heading_tolerance_rad": 1e-09,
+      "lateral_tolerance": 1e-09,
+      "distance_cost_per_meter": 1.0,
+      "neighbor_grid_steps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6
+      ],
+      "grid_index_tolerance": 1e-09
+    },
+    "walk_footprint": {
+      "length": 0.8,
+      "width": 0.6,
+      "height": 0.5
+    },
+    "fly_footprint": {
+      "length": 0.8,
+      "width": 0.8,
+      "height": 0.35
+    },
+    "morphing_envelope": {
+      "length": 1.0,
+      "width": 1.0,
+      "height": 1.0
+    },
+    "reverse_allowed": true,
+    "pivot_allowed": true,
+    "reverse_extra_cost": 20.0,
+    "pivot_extra_cost": 8.0,
+    "pivot_walk": {
+      "max_angle_deg": 90.0,
+      "neighbor_heading_steps": [
+        1,
+        2
+      ]
+    },
+    "transition_extra_cost": 3.0,
+    "walk_terrain_cost_mode": "distance_density",
+    "fly_validation": {
+      "pose_anchor": "bottom_center",
+      "body_policy": "fixed_axis_aligned_box",
+      "yaw_policy": "absent",
+      "map_policy": "complete_test_boxes",
+      "ground_policy": "flat_floor",
+      "ground_contact_policy": "allow",
+      "unknown_policy": "reject_map",
+      "obstacle_contact_policy": "collision",
+      "motion_policy": "straight_translation",
+      "takeoff_landing_policy": "unsupported",
+      "safety_margin": 0.0,
+      "collision_tolerance": 1e-09,
+      "altitude_limits": [
+        0.0,
+        8.0
+      ],
+      "max_edge_distance": 6.0,
+      "min_edge_distance": 1e-09
+    },
+    "transition_validation": {
+      "motion_policy": "stationary_morphing",
+      "envelope_policy": "fixed_axis_aligned_swept_box",
+      "supported_directions": [
+        "walk_to_fly",
+        "fly_to_walk"
+      ],
+      "anchor_match_policy": "exact",
+      "takeoff_landing_policy": "unsupported"
+    },
+    "mandatory_anchors": {
+      "endpoint_policy": "exact",
+      "transition_sampling_policy": "ground_lattice",
+      "transition_spatial_resolution": 0.5,
+      "transition_heading_resolution_deg": 45.0,
+      "max_sampled_walk_states": 10000
+    }
+  },
+  "planner_settings": {
+    "endpoint_radius": 3.0,
+    "fly_approach": "adaptive_lattice",
+    "fly_graph": {
+      "connection_radius": 2.5,
+      "max_neighbors": 16,
+      "distance_cost_per_meter": 1.0,
+      "max_nodes": 15000,
+      "max_edges": 300000,
+      "max_connection_attempts": 300000,
+      "max_lattice_cells": 100000
+    },
+    "fly_tuning": {
+      "coarse_resolution": 2.0,
+      "fine_resolution": 0.5,
+      "samples": 256,
+      "max_sample_attempts": 30000
+    },
+    "walk_terrain_cost_mode": "distance_density"
+  }
+}
