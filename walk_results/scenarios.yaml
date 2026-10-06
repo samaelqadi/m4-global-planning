@@ -1,0 +1,1210 @@
+version: 1
+
+meta:
+  name: m4_global_planner_test_scenarios
+  purpose: >
+    Shared dummy data used to test node generation,
+    edge generation, transitions, and later search algorithms.
+
+  rules:
+    - Use the same scenarios for every implementation.
+    - Hard physical impossibility means no node or no edge.
+    - Soft preference means the node or edge exists with extra cost.
+    - All robot dimensions and penalties below are test values only.
+    - Do not add a scenario if an existing one already tests the same thing.
+
+
+test_parameters:
+  test_only: true
+
+  spatial_resolution: 0.5
+  heading_resolution_deg: 45
+
+  # Straight forward WALK stage only; test settings, not robot calibration.
+  straight_walk:
+    max_distance: 3.0
+    heading_tolerance_rad: 1.0e-9
+    lateral_tolerance: 1.0e-9
+    distance_cost_per_meter: 1.0
+    # Allowed Chebyshev radii in lattice cells; candidates still obey max_distance.
+    neighbor_grid_steps: [1, 2, 3, 4, 5, 6]
+    grid_index_tolerance: 1.0e-9
+
+  walk_footprint:
+    length: 0.8
+    width: 0.6
+    height: 0.5
+
+  fly_footprint:
+    length: 0.8
+    width: 0.8
+    height: 0.35
+
+  morphing_envelope:
+    length: 1.0
+    width: 1.0
+    height: 1.0
+
+  reverse_allowed: true
+  pivot_allowed: true
+
+  reverse_extra_cost: 20.0
+  pivot_extra_cost: 8.0
+  pivot_walk:
+    max_angle_deg: 90.0
+    # Neighbor heading-bin offsets, in both rotation directions.
+    neighbor_heading_steps: [1, 2]
+  transition_extra_cost: 3.0
+
+  walk_terrain_cost_mode: unsupported
+
+walk_benchmark:
+  repeats: 3
+  roadmap_seeds: [11, 29, 47]
+  timeout_seconds: 180
+  terrain_cost_mode: distance_density
+  endpoint_radius: 3.0
+  grid_neighbor_steps: [1]
+  roadmap_samples: 160
+  roadmap_trial_factor: 20
+  roadmap_goal_line_fraction: 0.2
+  roadmap_line_chain: true
+  roadmap_radius: 3.0
+  roadmap_neighbors: 10
+  hybrid_step_lengths: [0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
+  hybrid_xy_bin: 0.25
+  hybrid_heading_bin_deg: 45.0
+  max_expansions: 80000
+  cost_tolerance: 1.0e-7
+  # Synthetic requests only where existing scenarios omit endpoints.
+  requests:
+    W08_too_narrow:
+      start: {position: [1.0, 2.0, 0.0], heading_deg: 0}
+      goal: {position: [5.0, 2.0, 0.0], heading_deg: 0}
+    G04_large_open_world:
+      start: {position: [1.0, 1.0, 0.0], heading_deg: 0}
+      goal: {position: [29.0, 29.0, 0.0], heading_deg: 0}
+    G05_dense_clutter:
+      start: {position: [1.0, 1.0, 0.0], heading_deg: 0}
+      goal: {position: [11.0, 11.0, 0.0], heading_deg: 0}
+  cases:
+    - {scenario: W01_forward, expected: success}
+    - {scenario: W02_sideways_motion, expected: success}
+    - {scenario: W03_ninety_degree_turn, expected: success}
+    - {scenario: W04_dead_end_reverse, expected: success}
+    - {scenario: W04_dead_end_reverse, reverse_allowed: false, expected: no_path}
+    - {scenario: W05_pivot, expected: success}
+    - {scenario: W05_pivot, pivot_allowed: false, expected: no_path}
+    - {scenario: W06_blocked_between_free_endpoints, expected: no_path}
+    - {scenario: W07_narrow_valid_passage, resolution: 0.2, expected: success}
+    - {scenario: W07_narrow_valid_passage, resolution: 0.4, expected: success}
+    - {scenario: W07_narrow_valid_passage, resolution: 0.8, expected: success}
+    - {scenario: W08_too_narrow, expected: no_path}
+    - {scenario: G01_no_path, expected: no_path}
+    - {scenario: G02_equal_cost_routes, expected: success}
+    - {scenario: G03_shorter_but_more_expensive, expected: success}
+    - {scenario: G04_large_open_world, expected: success}
+    - {scenario: G05_dense_clutter, expected: success}
+    - {scenario: S01_start_equals_goal, expected: success}
+    - {scenario: S02_invalid_start, expected: invalid_start}
+    - {scenario: S03_invalid_goal, expected: invalid_goal}
+
+
+scenarios:
+
+  # ==================================================
+  # NODE GENERATION
+  # ==================================================
+
+  N01_flat_open_room:
+    purpose: basic node generation
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden: []
+      walk_cost_regions: []
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - no_duplicate_states
+      - no_states_outside_bounds
+      - walk_z_matches_ground
+      - headings_follow_configuration
+
+
+  N02_non_integer_bounds:
+    purpose: test map bounds that do not divide exactly by resolution
+
+    overrides:
+      spatial_resolution: 0.5
+
+    world:
+      bounds: [0.0, 5.3, 0.0, 3.7, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden: []
+      walk_cost_regions: []
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - no_states_outside_bounds
+      - boundary_sampling_is_consistent
+      - no_floating_point_extra_row
+
+
+  N03_variable_ground_height:
+    purpose: verify that WALK z comes from the map
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: plane
+        z_at_origin: 0.0
+        slope_x: 0.05
+        slope_y: 0.02
+
+      walk_forbidden: []
+      walk_cost_regions: []
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - walk_z_matches_ground
+      - walk_z_is_not_independently_generated
+
+
+  N04_missing_ground_data:
+    purpose: test missing elevation information
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+        missing_regions:
+          - min: [2.0, 1.0]
+            max: [3.0, 2.0]
+
+      walk_forbidden: []
+      walk_cost_regions: []
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - no_walk_state_where_ground_is_missing
+      - missing_z_is_not_replaced_with_zero
+
+
+  N05_walk_forbidden_region:
+    purpose: test hard WALK feasibility
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden:
+        - min: [2.0, 1.0]
+          max: [4.0, 3.0]
+
+      walk_cost_regions: []
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - no_walk_states_inside_forbidden_region
+      - fly_generation_is_independent
+
+
+  N06_high_cost_ground:
+    purpose: distinguish expensive terrain from impossible terrain
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden: []
+
+      walk_cost_regions:
+        - min: [2.0, 1.0]
+          max: [4.0, 3.0]
+          cost: 5.0
+
+      unknown_regions: []
+      obstacles_3d: []
+
+    checks:
+      - walk_states_still_exist
+      - high_cost_is_not_hard_obstacle
+
+
+  # ==================================================
+  # WALK EDGE GENERATION
+  # ==================================================
+
+  W01_forward:
+    purpose: basic forward WALK edge
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 2.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    from:
+      position: [1.0, 1.0, 0.0]
+      heading_deg: 0
+
+    to:
+      position: [2.0, 1.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - walk_edge_should_exist
+
+
+  W02_sideways_motion:
+    purpose: reject direct sideways WALK movement
+
+    world:
+      bounds: [0.0, 4.0, 0.0, 4.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    from:
+      position: [2.0, 2.0, 0.0]
+      heading_deg: 0
+
+    to:
+      position: [2.0, 3.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - direct_sideways_edge_should_not_exist
+
+
+  W03_ninety_degree_turn:
+    purpose: test heading-aware corner movement
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 6.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.0, 0.0, 0.0]
+          max: [6.0, 1.0, 2.0]
+
+        - min: [0.0, 3.0, 0.0]
+          max: [3.0, 6.0, 2.0]
+
+        - min: [5.0, 1.0, 0.0]
+          max: [6.0, 6.0, 2.0]
+
+    start:
+      position: [1.5, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [4.0, 4.5, 0.0]
+      heading_deg: 90
+
+    checks:
+      - valid_turning_route_exists
+      - no_sideways_jump
+      - no_wall_cutting
+
+
+  W04_dead_end_reverse:
+    purpose: test reverse as a last-resort maneuver
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 2.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.0, 0.0, 0.0]
+          max: [6.0, 0.65, 2.0]
+
+        - min: [0.0, 1.35, 0.0]
+          max: [6.0, 2.0, 2.0]
+
+        - min: [5.3, 0.65, 0.0]
+          max: [6.0, 1.35, 2.0]
+
+    start:
+      position: [4.5, 1.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [1.0, 1.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - reverse_escape_is_possible
+      - reverse_has_extra_cost
+      - reverse_is_not_hard_forbidden
+
+
+  W05_pivot:
+    purpose: test possible but discouraged pivot movement
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    from:
+      position: [2.5, 2.5, 0.0]
+      heading_deg: 0
+
+    to:
+      position: [2.5, 2.5, 0.0]
+      heading_deg: 90
+
+    checks:
+      - pivot_exists_only_if_enabled
+      - pivot_has_extra_cost
+
+
+  W06_blocked_between_free_endpoints:
+    purpose: test full edge collision checking
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 3.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.2, 0.5, 0.0]
+          max: [2.8, 2.5, 2.0]
+
+    from:
+      position: [1.0, 1.5, 0.0]
+      heading_deg: 0
+
+    to:
+      position: [4.0, 1.5, 0.0]
+      heading_deg: 0
+
+    checks:
+      - direct_edge_should_not_exist
+
+
+  W07_narrow_valid_passage:
+    purpose: test footprint and spatial resolution
+
+    resolution_test:
+      - 0.2
+      - 0.4
+      - 0.8
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.5, 0.0, 0.0]
+          max: [3.5, 1.55, 2.0]
+
+        - min: [2.5, 2.45, 0.0]
+          max: [3.5, 4.0, 2.0]
+
+    start:
+      position: [1.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [5.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - valid_passage_is_preserved_when_resolution_is_good
+      - record_connectivity_vs_resolution
+
+
+  W08_too_narrow:
+    purpose: test physically impossible WALK clearance
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.5, 0.0, 0.0]
+          max: [3.5, 1.8, 2.0]
+
+        - min: [2.5, 2.2, 0.0]
+          max: [3.5, 4.0, 2.0]
+
+    checks:
+      - walk_connection_should_not_exist
+
+
+  # ==================================================
+  # FLY NODE AND EDGE GENERATION
+  # ==================================================
+
+  F01_open_3d:
+    purpose: baseline 3D flight representation
+
+    world:
+      bounds: [0.0, 8.0, 0.0, 6.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    checks:
+      - fly_states_cover_free_volume
+      - record_state_count
+      - record_edge_count
+      - record_graph_generation_time
+      - record_memory
+
+
+  F02_blocked_flight_segment:
+    purpose: test FLY edge collision
+
+    world:
+      bounds: [0.0, 8.0, 0.0, 4.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [3.5, 1.0, 1.0]
+          max: [4.5, 3.0, 3.0]
+
+    from:
+      position: [1.0, 2.0, 2.0]
+
+    to:
+      position: [7.0, 2.0, 2.0]
+
+    checks:
+      - direct_flight_edge_should_not_exist
+
+
+  F03_low_ceiling:
+    purpose: test vertical free-space limits
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.0, 0.0, 1.2]
+          max: [6.0, 4.0, 3.0]
+
+    checks:
+      - no_fly_state_inside_ceiling
+
+
+  F04_overhead_obstacle:
+    purpose: test requirement for real 3D obstacle information
+
+    world:
+      bounds: [0.0, 6.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.0, 1.0, 0.7]
+          max: [4.0, 3.0, 1.2]
+
+    checks:
+      - overhead_obstacle_is_detected
+      - pure_2_5d_input_is_not_enough_for_this_test
+
+
+  F05_narrow_3d_opening:
+    purpose: test a small valid flying opening
+
+    world:
+      bounds: [0.0, 8.0, 0.0, 6.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [3.5, 0.0, 0.0]
+          max: [4.5, 2.4, 4.0]
+
+        - min: [3.5, 3.6, 0.0]
+          max: [4.5, 6.0, 4.0]
+
+        - min: [3.5, 2.4, 0.0]
+          max: [4.5, 3.6, 1.4]
+
+        - min: [3.5, 2.4, 2.6]
+          max: [4.5, 3.6, 4.0]
+
+    start:
+      position: [2.0, 3.0, 2.0]
+
+    goal:
+      position: [6.0, 3.0, 2.0]
+
+    checks:
+      - valid_opening_should_be_represented
+
+
+  F06_multiple_altitudes:
+    purpose: verify that FLY z is part of planning
+
+    world:
+      bounds: [0.0, 8.0, 0.0, 4.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [3.0, 0.5, 0.5]
+          max: [5.0, 3.5, 1.8]
+
+    start:
+      position: [1.0, 2.0, 1.0]
+
+    goal:
+      position: [7.0, 2.0, 1.0]
+
+    checks:
+      - higher_route_should_exist
+      - fly_z_is_not_ground_z
+
+
+  # ==================================================
+  # MORPHING / MODE TRANSITIONS
+  # ==================================================
+
+  T01_open_transition:
+    purpose: test valid WALK to FLY transition
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    position: [2.5, 2.5, 0.0]
+    heading_deg: 0
+
+    checks:
+      - transition_should_exist
+      - morphing_travel_distance_is_zero
+      - transition_cost_is_separate
+
+
+  T02_blocked_morphing_space:
+    purpose: reject morphing when its envelope collides
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.0, 2.0, 0.75]
+          max: [3.0, 3.0, 1.2]
+
+    position: [2.5, 2.5, 0.0]
+    heading_deg: 0
+
+    checks:
+      - transition_should_not_exist
+      - insufficient_morphing_space_is_hard_constraint
+
+
+  T03_only_one_transition_zone:
+    purpose: ensure robot cannot change mode anywhere it wants
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 6.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.0, 0.0, 0.7]
+          max: [4.0, 6.0, 1.3]
+
+        - min: [6.0, 0.0, 0.7]
+          max: [10.0, 6.0, 1.3]
+
+    checks:
+      - transitions_only_exist_in_clear_center
+
+
+  T04_multiple_transition_choices:
+    purpose: test several feasible transition locations
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 6.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_cost_regions:
+        - min: [1.0, 1.0]
+          max: [3.0, 3.0]
+          cost: 1.0
+
+        - min: [7.0, 3.0]
+          max: [9.0, 5.0]
+          cost: 4.0
+
+      obstacles_3d: []
+
+    checks:
+      - multiple_valid_transitions_exist
+      - preference_comes_from_cost
+
+
+  T05_flight_bridge:
+    purpose: require WALK to FLY to WALK
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 4.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden:
+        - min: [4.0, 0.0]
+          max: [6.0, 4.0]
+
+      obstacles_3d: []
+
+    start:
+      mode: walk
+      position: [1.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      mode: walk
+      position: [9.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - multimodal_route_should_exist
+      - walk_to_fly_required
+      - fly_to_walk_required
+
+
+  T06_walk_only:
+    purpose: verify that flight is not forced
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.0, 0.0, 0.6]
+          max: [10.0, 4.0, 3.0]
+
+    start:
+      mode: walk
+      position: [1.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      mode: walk
+      position: [9.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - walk_only_route_exists
+
+
+  # ==================================================
+  # GRAPH AND SEARCH BEHAVIOR
+  # ==================================================
+
+  G01_no_path:
+    purpose: test truly disconnected regions
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 6.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [4.5, 0.0, 0.0]
+          max: [5.5, 6.0, 4.0]
+
+    start:
+      mode: walk
+      position: [2.0, 3.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      mode: walk
+      position: [8.0, 3.0, 0.0]
+      heading_deg: 180
+
+    checks:
+      - no_path_should_exist
+
+
+  G02_equal_cost_routes:
+    purpose: test equal-cost alternatives
+
+    world:
+      bounds: [0.0, 8.0, 0.0, 6.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [3.0, 2.0, 0.0]
+          max: [5.0, 4.0, 2.0]
+
+    start:
+      position: [1.0, 3.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [7.0, 3.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - two_routes_should_exist
+      - tie_behavior_must_be_documented
+
+
+  G03_shorter_but_more_expensive:
+    purpose: test cost versus geometric distance
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 6.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_cost_regions:
+        - min: [3.0, 2.0]
+          max: [7.0, 4.0]
+          cost: 10.0
+
+      obstacles_3d: []
+
+    start:
+      position: [1.0, 3.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [9.0, 3.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - shorter_route_is_more_expensive
+      - lower_cost_detour_exists
+
+
+  G04_large_open_world:
+    purpose: stress scalability
+
+    world:
+      bounds: [0.0, 30.0, 0.0, 30.0, 0.0, 8.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    checks:
+      - record_state_count
+      - record_edge_count
+      - record_graph_generation_time
+      - record_memory
+
+
+  G05_dense_clutter:
+    purpose: stress collision checking
+
+    world:
+      bounds: [0.0, 12.0, 0.0, 12.0, 0.0, 4.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [2.0, 1.0, 0.0]
+          max: [3.0, 5.0, 3.0]
+
+        - min: [4.0, 6.0, 0.0]
+          max: [5.0, 11.0, 3.5]
+
+        - min: [6.0, 2.0, 0.0]
+          max: [7.0, 8.0, 2.5]
+
+        - min: [8.0, 7.0, 0.0]
+          max: [9.0, 12.0, 3.0]
+
+        - min: [10.0, 1.0, 0.0]
+          max: [11.0, 6.0, 3.5]
+
+    checks:
+      - no_edges_through_obstacles
+      - valid_passages_remain_connected
+      - record_edge_generation_time
+
+
+  G06_unknown_region:
+    purpose: ensure unknown space is not automatically blocked
+
+    world:
+      bounds: [0.0, 10.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      unknown_regions:
+        - min: [4.0, 0.0]
+          max: [6.0, 4.0]
+
+      obstacles_3d: []
+
+    checks:
+      - unknown_is_not_automatically_hard_blocked
+      - unknown_policy_is_configurable
+
+
+  # ==================================================
+  # REQUEST VALIDATION
+  # ==================================================
+
+  S01_start_equals_goal:
+    purpose: trivial planning request
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    start:
+      position: [2.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [2.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - success
+      - zero_length_path
+
+
+  S02_invalid_start:
+    purpose: reject invalid start
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [0.5, 0.5, 0.0]
+          max: [1.5, 1.5, 2.0]
+
+    start:
+      position: [1.0, 1.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [4.0, 4.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - reject_request
+      - no_silent_start_snapping
+
+
+  S03_invalid_goal:
+    purpose: reject invalid goal
+
+    world:
+      bounds: [0.0, 5.0, 0.0, 5.0, 0.0, 2.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d:
+        - min: [3.5, 3.5, 0.0]
+          max: [4.5, 4.5, 2.0]
+
+    start:
+      position: [1.0, 1.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [4.0, 4.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - reject_request
+      - no_silent_goal_snapping
+
+
+  # ==================================================
+  # REPLANNING
+  # ==================================================
+
+  R01_route_becomes_blocked:
+    purpose: test replanning when current route becomes invalid
+
+    initial_world:
+      bounds: [0.0, 10.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      obstacles_3d: []
+
+    update:
+      add_obstacles:
+        - min: [4.5, 1.0, 0.0]
+          max: [5.5, 3.0, 2.0]
+
+    start:
+      position: [1.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [9.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - initial_route_exists
+      - old_route_becomes_invalid
+      - alternative_route_is_found_if_available
+      - record_replanning_time
+
+
+  R02_new_route_available:
+    purpose: test map update that creates a better route
+
+    initial_world:
+      bounds: [0.0, 10.0, 0.0, 4.0, 0.0, 3.0]
+
+      ground:
+        type: flat
+        z: 0.0
+
+      walk_forbidden:
+        - min: [4.0, 1.0]
+          max: [6.0, 3.0]
+
+      obstacles_3d: []
+
+    update:
+      remove_walk_forbidden:
+        - min: [4.0, 1.0]
+          max: [6.0, 3.0]
+
+    start:
+      position: [1.0, 2.0, 0.0]
+      heading_deg: 0
+
+    goal:
+      position: [9.0, 2.0, 0.0]
+      heading_deg: 0
+
+    checks:
+      - new_lower_cost_route_can_be_found
+
+
+representation_comparison:
+
+  candidate_1:
+    walk: state_lattice
+    fly: adaptive_3d_lattice
+    transition: shared_transition_checker
+
+  candidate_2:
+    walk: state_lattice
+    fly: sparse_3d_roadmap
+    transition: shared_transition_checker
+
+  rule:
+    - only_add_a_third_candidate_if_the_first_two_leave_an_unresolved_problem
+
+  metrics:
+    - valid_space_coverage
+    - false_disconnection
+    - false_connection
+    - narrow_passage_success
+    - state_count
+    - edge_count
+    - graph_generation_time
+    - memory
+    - repeatability
+    - scalability
+
+
+search_comparison:
+
+  candidates:
+    - dijkstra
+    - astar
+    - weighted_astar
+
+  optional_fourth:
+    - theta_or_lazy_theta_only_if_the_final_representation_supports_it
+    - otherwise_choose_an_algorithm_based_on_final_replanning_requirements
+
+  metrics:
+    - success_rate
+    - route_feasibility
+    - total_cost
+    - planning_time
+    - replanning_time
+    - nodes_expanded
+    - nodes_generated
+    - cpu_time
+    - ram
+    - path_length
+    - walk_distance
+    - fly_distance
+    - transition_count
+    - consistency
+    - scalability
+
+
+pending_changes:
+
+  upstream:
+    - exact_map_format
+    - ground_height_interface
+    - walk_feasibility_encoding
+    - cost_units
+    - cost_range
+    - cost_normalization
+    - 3d_flight_information
+    - unknown_space_semantics
+    - map_update_interface
+
+  robot:
+    - real_walk_footprint
+    - real_fly_footprint
+    - real_morphing_envelope
+    - safety_margin
+
+  walk:
+    - real_turning_behavior
+    - practical_minimum_turning_radius
+    - pivot_reliability
+    - reverse_limits
+    - reverse_penalty
+    - final_motion_primitives
+
+  fly:
+    - whether_yaw_is_needed
+    - altitude_limits
+    - flight_connection_limits
+
+  transition:
+    - transition_geometry
+    - transition_time
+    - transition_cost
+    - takeoff_constraints
+    - landing_constraints
+
+  representation:
+    - final_spatial_resolution
+    - final_heading_resolution
+    - adaptive_3d_rules
+    - roadmap_sampling_parameters
+
+  search:
+    - final_edge_cost_definition
+    - heuristic_definition
+    - heuristic_scaling
+    - whether_incremental_search_is_needed
+
+  validation:
+    - simulation_tests
+    - real_robot_tests
+    - wheel_slip
+    - localization_error
+    - actuation_delay
+    - perception_error
+    - mapping_error

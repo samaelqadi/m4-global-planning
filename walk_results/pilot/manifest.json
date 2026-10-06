@@ -1,0 +1,204 @@
+{
+  "signature": "d2bcac54aa70397febea4741f8dceea5c0ffbc506e54a127631bfc5038b77b8e",
+  "sources": {
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/scenario_loader.py": "d194e850549963dc1e1ca590ada4ddff741e68e72eac52b31c435d4f937ccb4f",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/dummy_graph.py": "3942dfc99b2fbdfb48a3524493b8dee3bb523ccfc59bcdca9d6a0093aa764d75",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/metrics.py": "a8167fa137d26fdbe52bfe888a79aa377d8537327d1d6f4d7d238d7b19e9440f",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/astar.py": "8d31616077eb0e071785d223223c6f16e1809ef9230c558fdde1402520501c78",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/walk_benchmark.py": "43f8fdf118dac3ac989775694853eac93e98a0aa6af5d2bed281ccfb8275476b",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/walk_comparison.py": "fcdf0b998cea16b9dbf3602362d73a4c790b769398609e09437de4d8c8098622",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/graph.py": "127d9a804be73e78fc59c86b1c5b8d171333d6be879cb35fc8165946b57d6d4a",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/dummy_map.py": "dff13b9c12de4e43a22ae3873b4d1fae4d0504a2ab2c5dc623ba14be09fd2ceb",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/benchmark.py": "f92869f07b5f6cd9f9c25da7e15e3c1efd3d220166874d4bd28111117526dadc",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/interfaces.py": "3705167cb0a7c38b1e404907605a078abffd27b9f7e54aa87e4b4b1f9b34c2cf",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_validator.py": "d26cbb7db2137cce898d9e7ebfa958f2de5590d0f16efa38ab0e0bfabf975900",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_edges.py": "cc705b132b79f9ed63342d012bc405545e5d7a41c88cf4e5af4876b841532918",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/geometry.py": "75ac3e3e69fe34e5e53c0714035f537df2ff6f2e1cb630e6f5e9b9acb2d0fb30",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_costs.py": "027251a441a28452a7f572eeefeec21c5323de868c4e0056b3e7a2c1eda55c45",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/states.py": "460b0267870b3b05a1a11fb6ff39da20dc069490f54f4cfa770ad5e43113e5b8",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/walk_graph.py": "edb5b104893bf4a66965772b40a72bf95ee883e9644db78e5609893ce024fd8a",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/home/samat1/m4_ws/src/m4_global_planner/m4_global_planner/representation/state_lattice.py": "df4614061fd13ac7278e69e12ba92ee18cf250dba7543577dcd301b26bab6102",
+    "/home/samat1/m4_ws/src/m4_global_planner/test_data/scenarios.yaml": "9563e4d6704a7fb76ad9a3a2dc2e7293c97a8d1927bba32d45152abfa5c4e773"
+  },
+  "utc": "2026-10-05T14:26:03.990618+00:00",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "platform": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "cpu_count": 12,
+  "settings": {
+    "repeats": 3,
+    "roadmap_seeds": [
+      11,
+      29,
+      47
+    ],
+    "timeout_seconds": 180,
+    "terrain_cost_mode": "distance_density",
+    "endpoint_radius": 3.0,
+    "grid_neighbor_steps": [
+      1
+    ],
+    "roadmap_samples": 160,
+    "roadmap_trial_factor": 20,
+    "roadmap_goal_line_fraction": 0.2,
+    "roadmap_line_chain": true,
+    "roadmap_radius": 3.0,
+    "roadmap_neighbors": 10,
+    "hybrid_step_lengths": [
+      0.5,
+      1.0,
+      1.5,
+      2.0,
+      2.5,
+      3.0
+    ],
+    "hybrid_xy_bin": 0.25,
+    "hybrid_heading_bin_deg": 45.0,
+    "max_expansions": 80000,
+    "cost_tolerance": 1e-07,
+    "requests": {
+      "W08_too_narrow": {
+        "start": {
+          "position": [
+            1.0,
+            2.0,
+            0.0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "position": [
+            5.0,
+            2.0,
+            0.0
+          ],
+          "heading_deg": 0
+        }
+      },
+      "G04_large_open_world": {
+        "start": {
+          "position": [
+            1.0,
+            1.0,
+            0.0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "position": [
+            29.0,
+            29.0,
+            0.0
+          ],
+          "heading_deg": 0
+        }
+      },
+      "G05_dense_clutter": {
+        "start": {
+          "position": [
+            1.0,
+            1.0,
+            0.0
+          ],
+          "heading_deg": 0
+        },
+        "goal": {
+          "position": [
+            11.0,
+            11.0,
+            0.0
+          ],
+          "heading_deg": 0
+        }
+      }
+    },
+    "cases": [
+      {
+        "scenario": "W01_forward",
+        "expected": "success"
+      },
+      {
+        "scenario": "W02_sideways_motion",
+        "expected": "success"
+      },
+      {
+        "scenario": "W03_ninety_degree_turn",
+        "expected": "success"
+      },
+      {
+        "scenario": "W04_dead_end_reverse",
+        "expected": "success"
+      },
+      {
+        "scenario": "W04_dead_end_reverse",
+        "reverse_allowed": false,
+        "expected": "no_path"
+      },
+      {
+        "scenario": "W05_pivot",
+        "expected": "success"
+      },
+      {
+        "scenario": "W05_pivot",
+        "pivot_allowed": false,
+        "expected": "no_path"
+      },
+      {
+        "scenario": "W06_blocked_between_free_endpoints",
+        "expected": "no_path"
+      },
+      {
+        "scenario": "W07_narrow_valid_passage",
+        "resolution": 0.2,
+        "expected": "success"
+      },
+      {
+        "scenario": "W07_narrow_valid_passage",
+        "resolution": 0.4,
+        "expected": "success"
+      },
+      {
+        "scenario": "W07_narrow_valid_passage",
+        "resolution": 0.8,
+        "expected": "success"
+      },
+      {
+        "scenario": "W08_too_narrow",
+        "expected": "no_path"
+      },
+      {
+        "scenario": "G01_no_path",
+        "expected": "no_path"
+      },
+      {
+        "scenario": "G02_equal_cost_routes",
+        "expected": "success"
+      },
+      {
+        "scenario": "G03_shorter_but_more_expensive",
+        "expected": "success"
+      },
+      {
+        "scenario": "G04_large_open_world",
+        "expected": "success"
+      },
+      {
+        "scenario": "G05_dense_clutter",
+        "expected": "success"
+      },
+      {
+        "scenario": "S01_start_equals_goal",
+        "expected": "success"
+      },
+      {
+        "scenario": "S02_invalid_start",
+        "expected": "invalid_start"
+      },
+      {
+        "scenario": "S03_invalid_goal",
+        "expected": "invalid_goal"
+      }
+    ]
+  }
+}

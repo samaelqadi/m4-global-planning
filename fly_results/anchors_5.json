@@ -1,0 +1,12 @@
+{
+  "anchor_ms": 1.214279000123497,
+  "anchor_sha256": "885bbd6c0f1446abcfc24a813c3352bb668ce1fbf81a3df4732f8fcef10eab66",
+  "anchor_peak_rss_mib": 22.6875,
+  "anchor_nodes": 5,
+  "transition_records": 16,
+  "endpoint_order": [
+    "0",
+    "1",
+    "2"
+  ]
+}
