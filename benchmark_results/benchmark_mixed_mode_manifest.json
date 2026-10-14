@@ -1,0 +1,67 @@
+{
+  "python": "3.12.14",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "runs_per_algorithm_scenario": 7,
+  "timing_clock": "time.perf_counter_ns",
+  "planner_runtime": "external wall time around GlobalPlanner.plan",
+  "update_processing": "cost-only profile application and replacement snapshot acceptance; graph copy excluded",
+  "path_validation": "start/goal, supplied directed connections, recomputed edge-cost sum, expected route mode family, and Dijkstra optimal cost",
+  "scenarios": [
+    {
+      "name": "walk_favored",
+      "alternatives_per_family": 128,
+      "expected_route_family": "walk",
+      "cost_profile": "walk_favored",
+      "cost_only_update": false,
+      "nodes": 3842,
+      "edges": 4224,
+      "walk_states": 1922,
+      "fly_states": 1920
+    },
+    {
+      "name": "fly_favored",
+      "alternatives_per_family": 128,
+      "expected_route_family": "fly",
+      "cost_profile": "fly_favored",
+      "cost_only_update": false,
+      "nodes": 3842,
+      "edges": 4224,
+      "walk_states": 1922,
+      "fly_states": 1920
+    },
+    {
+      "name": "mixed_favored",
+      "alternatives_per_family": 128,
+      "expected_route_family": "mixed",
+      "cost_profile": "mixed_favored",
+      "cost_only_update": false,
+      "nodes": 3842,
+      "edges": 4224,
+      "walk_states": 1922,
+      "fly_states": 1920
+    },
+    {
+      "name": "updated_to_fly",
+      "alternatives_per_family": 128,
+      "expected_route_family": "fly",
+      "cost_profile": "fly_favored",
+      "cost_only_update": true,
+      "nodes": 3842,
+      "edges": 4224,
+      "walk_states": 1922,
+      "fly_states": 1920
+    },
+    {
+      "name": "large_mixed_scale",
+      "alternatives_per_family": 512,
+      "expected_route_family": "mixed",
+      "cost_profile": "mixed_favored",
+      "cost_only_update": false,
+      "nodes": 15362,
+      "edges": 16896,
+      "walk_states": 7682,
+      "fly_states": 7680
+    }
+  ],
+  "memory_metric": "not measured for these mixed-mode scenarios"
+}
