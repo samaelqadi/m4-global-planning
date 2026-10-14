@@ -1,0 +1,3327 @@
+{
+  "static_pass_counts": {
+    "dijkstra": 980,
+    "astar": 980,
+    "bidirectional_dijkstra": 980,
+    "bidirectional_astar": 980,
+    "weighted_1": 980,
+    "LPAStar": 980,
+    "DStarLite": 980
+  },
+  "static_failures": [],
+  "dynamic": [
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": Infinity
+        }
+      ],
+      "seed": 0,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": Infinity
+        }
+      ],
+      "seed": 1,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 4.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 4.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 10.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 10.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 10.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 14.5
+        }
+      ],
+      "seed": 2,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 10.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 10.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 4.0
+        }
+      ],
+      "seed": 3,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 4.0
+        }
+      ],
+      "seed": 4,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 3.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 3.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 3.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 3.25
+        }
+      ],
+      "seed": 5,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 2.75
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 3.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 3.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 6,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.75
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 0.25
+        }
+      ],
+      "seed": 7,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 6.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 5.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 5.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 5.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.25
+        }
+      ],
+      "seed": 8,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 3.0
+        }
+      ],
+      "seed": 9,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 8.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 8.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 7.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 4.0
+        }
+      ],
+      "seed": 10,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 2.0
+        }
+      ],
+      "seed": 11,
+      "mode": "positive"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 14.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 14.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 14.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 9.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 9.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 9.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 10.0
+        }
+      ],
+      "seed": 0,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": Infinity
+        }
+      ],
+      "seed": 1,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": Infinity
+        }
+      ],
+      "seed": 2,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 13.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 13.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 3,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 0.25
+        }
+      ],
+      "seed": 4,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 2.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 5,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 8.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 8.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 8.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 8.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 4.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 12.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 7.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.25
+        }
+      ],
+      "seed": 6,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 5.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 0.5
+        }
+      ],
+      "seed": 7,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 4.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": Infinity
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 2.5
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 3.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 8,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 9,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 1.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 2.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 1.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 1.0
+        }
+      ],
+      "seed": 10,
+      "mode": "zero"
+    },
+    {
+      "status": "pass",
+      "rows": [
+        {
+          "algorithm": "LPAStar",
+          "step": 0,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 1,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 2,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 3,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 4,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 5,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 6,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 7,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 8,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 9,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 10,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 11,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "LPAStar",
+          "step": 12,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 0,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 1,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 2,
+          "cost": 0.0
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 3,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 4,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 5,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 6,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 7,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 8,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 9,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 10,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 11,
+          "cost": 0.25
+        },
+        {
+          "algorithm": "DStarLite",
+          "step": 12,
+          "cost": 0.25
+        }
+      ],
+      "seed": 11,
+      "mode": "zero"
+    }
+  ],
+  "elapsed_s": 3.5598767999908887,
+  "oracle": "Floyd-Warshall independent of production search",
+  "purpose": "Correctness checks, not speed comparison",
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ]
+}

@@ -50,6 +50,9 @@ class Graph:
         self.edges = {}  # stores outgoing edges from every node
 
     def add_node(self, node):
+        if not hasattr(node, 'node_id'):
+            raise ValueError('Node record must define a node_id')
+
         # node ids must be unique
         if node.node_id in self.nodes:
             raise ValueError('Node already exists')
@@ -58,6 +61,9 @@ class Graph:
         self.edges[node.node_id] = {}
 
     def add_edge(self, edge):
+        if not hasattr(edge, 'source_id') or not hasattr(edge, 'target_id') or not hasattr(edge, 'cost'):
+            raise ValueError('Edge record must define source_id, target_id, and cost')
+
         # source node must exist
         if edge.source_id not in self.nodes:
             raise ValueError('Source node does not exist')

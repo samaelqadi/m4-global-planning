@@ -47,6 +47,14 @@ def graph_fingerprint(graph):
     return hashlib.sha256(serialized.encode('utf-8')).hexdigest()
 
 
+def test_measured_safe_astar_is_the_default_search_method():
+    planner = GlobalPlanner()
+    planner.set_graph(supplied_graph(), 'default-search')
+    result = planner.plan(0, 4)
+    assert result['search_method'] == 'astar'
+    assert result['total_cost'] == 3
+
+
 @pytest.mark.parametrize('method', ['dijkstra', 'astar'])
 def test_selects_whole_multimodal_route_on_supplied_costs(method):
     graph = supplied_graph()
@@ -114,6 +122,23 @@ def test_malformed_snapshot_fails_closed(defect):
     assert not planner.is_current(old)
     with pytest.raises(RuntimeError):
         planner.plan(0, 4)
+
+
+def test_malformed_node_and_edge_records_fail_closed_without_raw_attribute_errors():
+    planner = GlobalPlanner()
+    graph = Graph()
+    graph.add_node(Node(0, 0, 0, 0, 'walk'))
+    graph.add_node(Node(1, 1, 0, 0, 'walk'))
+    graph.edges[0][1] = object()
+    with pytest.raises(ValueError):
+        planner.set_graph(graph, 'bad-edge')
+
+    another = Graph()
+    another.add_node(SimpleNamespace(node_id=0, mode='invalid'))
+    another.add_node(Node(1, 0, 0, 0))
+    another.edges[0][1] = Edge(0, 1, 1)
+    with pytest.raises(ValueError):
+        planner.set_graph(another, 'bad-node')
 
 
 def test_missing_endpoints_and_lazy_builders_are_not_implicitly_attached_or_run():
@@ -374,3 +399,72 @@ def test_nonfinite_node_and_edge_values_rejected(value):
 def test_partial_node_geometry_is_rejected():
     with pytest.raises(ValueError, match='complete or omitted'):
         Node(0, x=1.0, y=None, z=0.0)
+
+
+@pytest.mark.parametrize(
+    ('reported_cost', 'should_pass'),
+    [(3.002, True), (3.004, False)],
+)
+def test_route_cost_audit_applies_configured_tolerance(
+    monkeypatch, reported_cost, should_pass
+):
+    planner = GlobalPlanner(cost_tolerance=1e-3)
+    planner.set_graph(supplied_graph(), 1)
+    search_result = {
+        'success': True,
+        'path': [0, 2, 3, 4],
+        'total_cost': reported_cost,
+        'nodes_expanded': 4,
+        'nodes_explored': 4,
+        'nodes_generated': 4,
+        'edge_evaluations': 3,
+        'processed_nodes': 4,
+    }
+    monkeypatch.setattr(
+        'm4_global_planner.global_planner.astar',
+        lambda graph, start_id, goal_id, heuristic_scale: search_result,
+    )
+
+    if should_pass:
+        assert planner.plan(0, 4)['total_cost'] == 3
+    else:
+        with pytest.raises(ValueError, match='edge/cost audit'):
+            planner.plan(0, 4)
+
+
+def test_route_audit_rejects_an_edge_missing_from_the_accepted_graph(monkeypatch):
+    planner = GlobalPlanner()
+    planner.set_graph(supplied_graph(), 1)
+    search_result = {
+        'success': True,
+        'path': [0, 4],
+        'total_cost': 3,
+        'nodes_expanded': 2,
+        'nodes_explored': 2,
+        'nodes_generated': 2,
+        'edge_evaluations': 1,
+        'processed_nodes': 2,
+    }
+    monkeypatch.setattr(
+        'm4_global_planner.global_planner.astar',
+        lambda graph, start_id, goal_id, heuristic_scale: search_result,
+    )
+
+    with pytest.raises(ValueError, match='edge absent'):
+        planner.plan(0, 4)
+
+
+@pytest.mark.parametrize('method', ['dijkstra', 'astar'])
+def test_large_finite_route_costs_are_preserved(method):
+    graph = Graph()
+    for node_id in range(3):
+        graph.add_node(Node(node_id))
+    graph.add_edge(Edge(0, 1, 1e200))
+    graph.add_edge(Edge(1, 2, 1e200))
+
+    planner = GlobalPlanner(search_method=method)
+    planner.set_graph(graph, 'large-finite-costs')
+    result = planner.plan(0, 2)
+
+    assert result['success']
+    assert result['total_cost'] == 2e200

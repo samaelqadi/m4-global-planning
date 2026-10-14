@@ -1,0 +1,4 @@
+LPAStar (0, 1) before 2.0 after RuntimeError('LPA* cost labels do not contain a route to the goal') reference 5.0
+LPAStar (2, 3) before 2.0 after {'success': True, 'path': [0, 3], 'total_cost': 5.0, 'nodes_expanded': 2, 'nodes_explored': 2, 'nodes_generated': 4, 'edge_evaluations': 0, 'processed_nodes': 2} reference 5.0
+DStarLite (0, 1) before 2.0 after {'success': True, 'path': [0, 3], 'total_cost': 5.0, 'nodes_expanded': 2, 'nodes_explored': 2, 'nodes_generated': 4, 'edge_evaluations': 0, 'processed_nodes': 2} reference 5.0
+DStarLite (2, 3) before 2.0 after RuntimeError('D* Lite cost labels do not contain a route to the goal') reference 5.0

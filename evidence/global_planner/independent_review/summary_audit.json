@@ -1,0 +1,5 @@
+{
+  "checked_statistics": 600,
+  "status": "pass",
+  "scope": "Static and weighted timing summaries recalculated from saved raw rows; not a replay of saved paths."
+}

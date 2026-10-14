@@ -1,0 +1,164 @@
+{
+  "python": "3.12.14",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "static_runs": 10,
+  "dynamic_sequences": 5,
+  "weights": [
+    1.0,
+    1.25,
+    1.5,
+    2.0
+  ],
+  "static_scenarios": [
+    "small_static_grid",
+    "medium_static_grid",
+    "large_static_grid",
+    "very_large_static_grid",
+    "walk_only_grid",
+    "multimodal_supplied_graph",
+    "weighted_astar_tradeoff",
+    "unreachable_goal",
+    "narrow_constrained_route",
+    "multiple_alternative_costs"
+  ],
+  "scenarios": {
+    "small_static_grid": {
+      "purpose": "Small static reference grid",
+      "nodes": 144,
+      "edges": 1012,
+      "start": 0,
+      "goal": 143,
+      "walk_nodes": 144,
+      "fly_nodes": 0
+    },
+    "medium_static_grid": {
+      "purpose": "Medium scalability grid",
+      "nodes": 1600,
+      "edges": 12324,
+      "start": 0,
+      "goal": 1599,
+      "walk_nodes": 1600,
+      "fly_nodes": 0
+    },
+    "large_static_grid": {
+      "purpose": "Large scalability grid",
+      "nodes": 10000,
+      "edges": 78804,
+      "start": 0,
+      "goal": 9999,
+      "walk_nodes": 10000,
+      "fly_nodes": 0
+    },
+    "very_large_static_grid": {
+      "purpose": "Very large scalability grid",
+      "nodes": 40000,
+      "edges": 317604,
+      "start": 0,
+      "goal": 39999,
+      "walk_nodes": 40000,
+      "fly_nodes": 0
+    },
+    "walk_only_grid": {
+      "purpose": "WALK-only route",
+      "nodes": 900,
+      "edges": 6844,
+      "start": 0,
+      "goal": 899,
+      "walk_nodes": 900,
+      "fly_nodes": 0
+    },
+    "multimodal_supplied_graph": {
+      "purpose": "Existing WALK/FLY supplied graph",
+      "nodes": 5,
+      "edges": 5,
+      "start": 0,
+      "goal": 4,
+      "walk_nodes": 3,
+      "fly_nodes": 2
+    },
+    "weighted_astar_tradeoff": {
+      "purpose": "Long optimal corridor versus short geometrically attractive suboptimal route",
+      "nodes": 1004,
+      "edges": 1004,
+      "start": 0,
+      "goal": 1003,
+      "walk_nodes": 1004,
+      "fly_nodes": 0
+    },
+    "unreachable_goal": {
+      "purpose": "Disconnected goal behind a complete vertical cut",
+      "nodes": 1600,
+      "edges": 12088,
+      "start": 0,
+      "goal": 1599,
+      "walk_nodes": 1600,
+      "fly_nodes": 0
+    },
+    "narrow_constrained_route": {
+      "purpose": "Long narrow corridor with dead-end branches",
+      "nodes": 599,
+      "edges": 1196,
+      "start": 0,
+      "goal": 299,
+      "walk_nodes": 599,
+      "fly_nodes": 0
+    },
+    "multiple_alternative_costs": {
+      "purpose": "Alternative routes with a localized expensive crossing",
+      "nodes": 3600,
+      "edges": 28084,
+      "start": 0,
+      "goal": 3599,
+      "walk_nodes": 3600,
+      "fly_nodes": 0
+    }
+  },
+  "dynamic_updates": [
+    {
+      "type": "block_edge",
+      "pair": [
+        150,
+        151
+      ],
+      "cost": null
+    },
+    {
+      "type": "increase_edge_cost",
+      "pair": [
+        500,
+        501
+      ],
+      "cost": 12.0
+    },
+    {
+      "type": "reopen_edge",
+      "pair": [
+        150,
+        151
+      ],
+      "cost": 1.0
+    },
+    {
+      "type": "block_edge",
+      "pair": [
+        151,
+        152
+      ],
+      "cost": null
+    }
+  ],
+  "dynamic_scenario": {
+    "name": "dynamic_two_corridor_graph",
+    "purpose": "Repeated block/increase/reopen/block across a short primary route and longer alternate route",
+    "nodes": 901,
+    "edges": 1802,
+    "start": 0,
+    "goal": 300,
+    "walk_nodes": 901,
+    "fly_nodes": 0
+  },
+  "plots_generated": false,
+  "timing_clock": "time.perf_counter_ns",
+  "memory_metric": "tracemalloc peak Python allocations; graph input excluded",
+  "path_validation": "endpoints, every edge, recomputed cost, no-path vs Dijkstra"
+}

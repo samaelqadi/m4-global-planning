@@ -1,0 +1,13 @@
+Static requests checked against Floyd-Warshall
+dijkstra: 980 passed
+astar: 980 passed
+bidirectional_dijkstra: 980 passed
+bidirectional_astar: 980 passed
+weighted_1: 980 passed
+LPAStar: 980 passed
+DStarLite: 980 passed
+
+Static mismatches: 0
+Dynamic sequences: 24
+Dynamic initial/update results: 624
+Failed sequences after correction: 0

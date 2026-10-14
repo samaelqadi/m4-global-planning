@@ -1,0 +1,22 @@
+{
+  "src/m4_global_planner/m4_global_planner/astar.py": "90cfdf8e7e37ddf7e8e43019bf376f858353321633a9d4345b893b09bdab9006",
+  "src/m4_global_planner/m4_global_planner/benchmark_algorithms.py": "d19dc12d91aff04c6a72086c3c450c78d9891517f063217234fe937f3f0a7695",
+  "src/m4_global_planner/m4_global_planner/global_planner.py": "7e955aba48499e606f1605466311722ed0bdce6f0bd2580ebe1788f5af1fd712",
+  "src/m4_global_planner/m4_global_planner/graph.py": "aeb5992ed7a0a17bf8667e3576ad55640ae727f17a69db95391486d10bd1d3ca",
+  "src/m4_global_planner/m4_global_planner/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "src/m4_global_planner/test/test_benchmark_algorithms.py": "2bb38580d09ab5df8013e7c537f026e33e12197abe9b3250e6f11cdc0a1ba112",
+  "src/m4_global_planner/test/test_global_planner.py": "0478a72cb3f2082fc65faf7ff99e0afe361ba70e82452281775527a7bf8217a0",
+  "benchmarks/fixtures.py": "67cd034f2efe8e9b14134698443e7aa0ceb6322e6ee7a1e3c6aead0816491621",
+  "benchmarks/run_benchmarks.py": "c31e72820b9fcf92fd164d8c14ff784401a1392f09b87fb2e8edb7e10bfa6f5a",
+  "benchmark_results/benchmark_dynamic.csv": "675a1770d7439dc67f8630d363db3a09463ecf663db037239f65b8af62fb33b0",
+  "benchmark_results/benchmark_dynamic_runs.csv": "fc55a47de2d558ea6aa31051f03f5886cfb97d5d9581320d67e051139890a08d",
+  "benchmark_results/benchmark_manifest.json": "d4b0765d966f31a1c38633101e533c6e692b64798a6b3a227841f28faef696ad",
+  "benchmark_results/benchmark_static.csv": "afd0866f921b2c179702536840e787ef5df060b7128547f54f8878eb68a44ac0",
+  "benchmark_results/benchmark_static_runs.csv": "a9978b37db773cd79ff04e6c1d6b44740ec7e62bf2673244f0f5f490758aad2f",
+  "benchmark_results/benchmark_weighted_astar.csv": "515cd0e04b26c5aaf9137d279125114f2388e0235d4e04058e2b7e3dcfdb48ba",
+  "benchmark_results/benchmark_weighted_astar_runs.csv": "ea87616fa04335b359f82ce64b9d04f9788dddcdb9d27a14a171ded27e042bb1",
+  "GLOBAL_PLANNER_ALGORITHM_EVALUATION.md": "aaa9bc669ae19a017ac10229c75c9acf5d1c22c3d59649606c650410edaa3aea",
+  "GLOBAL_PLANNER_FINAL_HANDOFF.md": "57d0db13c9237d0801081d0a272d95a6200e12efae1f0b472fe1d5b7a4226217",
+  "GLOBAL_SEARCH.md": "06d75917cdfe24670100f941fdf1d7bffa8ae4171d1635359578f85dd6f2944a",
+  "pyproject.toml": "d4b305d1c0163a81c4caebec32906591d9847cd94cd18b2837bdea740d55e592"
+}

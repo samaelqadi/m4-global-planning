@@ -27,6 +27,7 @@ def dijkstra(graph, start_id, goal_id):
     queue = [(0.0, start_id)]
     explored = set()
     expanded = 0
+    edge_evaluations = 0
 
     while queue:
         current_cost, current_id = heapq.heappop(queue)
@@ -39,6 +40,7 @@ def dijkstra(graph, start_id, goal_id):
             break
 
         for edge in graph.get_neighbors(current_id):
+            edge_evaluations += 1
             candidate = current_cost + edge.cost
             if candidate < costs.get(edge.target_id, inf):
                 costs[edge.target_id] = candidate
@@ -54,6 +56,8 @@ def dijkstra(graph, start_id, goal_id):
             'nodes_expanded': expanded,
             'nodes_explored': len(explored),
             'nodes_generated': len(costs),
+            'edge_evaluations': edge_evaluations,
+            'processed_nodes': expanded,
         }
 
     return {
@@ -63,6 +67,8 @@ def dijkstra(graph, start_id, goal_id):
         'nodes_expanded': expanded,
         'nodes_explored': len(explored),
         'nodes_generated': len(costs),
+        'edge_evaluations': edge_evaluations,
+        'processed_nodes': expanded,
     }
 
 
@@ -80,6 +86,7 @@ def astar(graph, start_id, goal_id, heuristic_scale=0.0):
     generated_nodes = {start_id}
     nodes_expanded = 0
     explored = set()
+    edge_evaluations = 0
     start_h = heuristic(start, goal) * scale if scale else 0.0
     heapq.heappush(open_list, (start_h, 0.0, start_id))
 
@@ -99,9 +106,12 @@ def astar(graph, start_id, goal_id, heuristic_scale=0.0):
                 'nodes_expanded': nodes_expanded,
                 'nodes_explored': len(explored),
                 'nodes_generated': len(generated_nodes),
+                'edge_evaluations': edge_evaluations,
+                'processed_nodes': nodes_expanded,
             }
 
         for edge in graph.get_neighbors(current_id):
+            edge_evaluations += 1
             neighbor_id = edge.target_id
             new_g = g_cost[current_id] + edge.cost
 
@@ -122,4 +132,6 @@ def astar(graph, start_id, goal_id, heuristic_scale=0.0):
         'nodes_expanded': nodes_expanded,
         'nodes_explored': len(explored),
         'nodes_generated': len(generated_nodes),
+        'edge_evaluations': edge_evaluations,
+        'processed_nodes': nodes_expanded,
     }

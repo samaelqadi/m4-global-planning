@@ -1,3 +1,5 @@
+> Historical evaluation record. The current report is [GLOBAL_SEARCH.md](GLOBAL_SEARCH.md). The independent review added four zero-cost-update regressions and a full-reset fallback in evaluation-only LPA* and D* Lite; the final pre-commit audit added direct route-audit and large-finite-cost regressions. The current suite has 59 tests. Timing tables below predate the zero-cost correction and are not post-correction measurements.
+
 # Global Planner Final Handoff
 
 ## 1. Project responsibility
@@ -27,7 +29,7 @@ The planner does not produce a planning map, attach an unrepresented pose to a n
 ### Current Python interface
 
 ```python
-planner = GlobalPlanner(search_method='dijkstra', cost_tolerance=1e-9)
+planner = GlobalPlanner(search_method='astar', cost_tolerance=1e-9)
 planner.set_graph(graph, revision='graph-1')
 result = planner.plan(start_id, goal_id)
 result = planner.replan(updated_graph, 'graph-2', current_start_id, goal_id)
@@ -76,20 +78,25 @@ No separate `status` string is currently returned. Invalid inputs raise `TypeErr
 |---|---|---|---|
 | `src/m4_global_planner/m4_global_planner/graph.py` | `MotionMode`, immutable `Node` and `Edge`, and explicit directed `Graph` storage/access. Nodes allow optional geometry and mode metadata. | Used by `global_planner.py`, tests and the example. | Does not sample nodes, generate connections, price terrain or validate physical clearance. |
 | `src/m4_global_planner/m4_global_planner/astar.py` | `dijkstra`, `astar`, `heuristic`, and `build_path`. Implements exact nonnegative-cost graph search. | Called by `GlobalPlanner.plan`. | Does not create or repair graph edges. A* takes a nonnegative heuristic scale; scale zero gives `h=0`. |
-| `src/m4_global_planner/m4_global_planner/global_planner.py` | `GlobalPlanner.set_graph`, `plan`, `replan`, `is_current`. Copies and validates snapshots, derives safe A* scale when geometry allows, runs search, and audits route endpoints/edges/cost. | Imports only shared graph data types and the two search functions. | Does not import mapping, WALK/FLY builders, transition generators, costmaps or robot validators. |
+| `src/m4_global_planner/m4_global_planner/benchmark_algorithms.py` | Evaluation-only Weighted A*, bidirectional Dijkstra/A*, LPA*, and D* Lite. | Used by benchmark harness/tests only. | Not exposed as production search choices. |
+| `src/m4_global_planner/m4_global_planner/global_planner.py` | `GlobalPlanner.set_graph`, `plan`, `replan`, `is_current`. Copies and validates snapshots, derives safe A* scale when geometry allows, runs search, and audits route endpoints/edges/cost. Safe A* is the default; Dijkstra remains selectable. | Imports shared graph types and exact production search functions. | Does not import mapping, WALK/FLY builders, transition generators, costmaps or robot validators. |
 | `src/m4_global_planner/m4_global_planner/__init__.py` | Package marker. | Loaded by Python packaging. | No runtime logic. |
 | `src/m4_global_planner/test/test_global_planner.py` | Unit/contract tests and independent repeated-relaxation optimal-cost reference. | Uses synthetic explicit graphs and pytest. | Does not test map generation, simulation or hardware. |
+| `src/m4_global_planner/test/test_benchmark_algorithms.py` | Evaluation-only algorithm correctness and incremental-update tests. | Uses deterministic synthetic graphs. | Does not establish real producer performance. |
+| `benchmarks/fixtures.py`, `benchmarks/run_benchmarks.py` | Fixed supplied-graph scenarios and repeated benchmark runner with route checks. | Writes CSV/JSON benchmark evidence. | No graph generation or physical cost assignment. |
+| `benchmark_results/` | Final aggregate/raw static, weighted and dynamic measurements plus manifest. | Machine-readable results. | Synthetic workloads only. |
+| `GLOBAL_PLANNER_ALGORITHM_EVALUATION.md` | Focused benchmark methodology and result summary. | Complements the detailed current measurements and audit in `GLOBAL_SEARCH.md`; static/dynamic timings predate the zero-cost update fallback. | Synthetic data only. |
 | `examples/supplied_graph_demo.py` | Small producer-shaped toy graph demonstrating planning, a cost update, and no-path. | Imports the public graph/planner modules. | Is not a real producer integration or performance benchmark. |
 | `pyproject.toml` | Build metadata, package discovery and pytest configuration; test extra supplies pytest. | Used for installation/build/test. | No ROS runtime dependency is declared. |
 | `GLOBAL_SEARCH.md` | Current architecture, responsibility boundary, historical search evidence and known limitations. | Documentation. | Does not make the historical graph-builder work active planner scope. |
 
-Active search-layer files were checked for imports and test references. The current production package contains four Python modules (the three modules above plus the package marker); removed builders and benchmark-only code are not imported by the active planner.
+The evaluation-only algorithms are separate from the production planner API; graph generation and edge-cost assignment remain upstream responsibilities.
 
 ## 6. Search algorithms
 
 ### Dijkstra
 
-The active implementation repeatedly expands the lowest accumulated supplied cost. It is exact for finite directed graphs with nonnegative edge costs and needs no geometry or heuristic. It is the default and the correctness baseline. Its main limitation is that it may expand more nodes than a safe informed search.
+The active implementation repeatedly expands the lowest accumulated supplied cost. It is exact for finite directed graphs with nonnegative edge costs and needs no geometry or heuristic. It is the Dijkstra reference and selectable fallback. Its main limitation is that it may expand more nodes than safe informed search.
 
 ### A*
 
@@ -105,15 +112,15 @@ For every graph edge, the selected scale bounds the supplied cost below by scale
 
 Unscaled Euclidean distance is not generally admissible when cost units and geometric distance have no proven relationship. For example, a one-meter edge may have cost 0.01; using one meter as a cost estimate could overestimate the actual route cost.
 
-The current prototype does not accept a caller-provided heuristic callback or a producer-supplied lower-bound constant. Such an API should only be added with a shared, tested cost/geometry guarantee.
+The current prototype does not accept a caller-provided heuristic callback or a producer-supplied lower-bound constant. The current synthetic measurements and independent checks are in [GLOBAL_SEARCH.md](./GLOBAL_SEARCH.md); actual producer workload still needs measurement.
 
-### Optimized exact A*
+### Other evaluated algorithms
 
-Not present in the active package. Historical comparisons included a separate optimized exact A* variant, but its implementation and benchmark harness were removed from active source during scope cleanup. The available evidence does not establish a repeatable benefit worth maintaining a second A* implementation. It is not selected.
+Weighted A*, bidirectional Dijkstra, balanced-potential bidirectional A*, LPA*, and D* Lite have benchmark-only implementations in `benchmark_algorithms.py`. Their exact implementation status and evidence-based selection are documented in the benchmark report. They are not production API options.
 
 ### D* Lite
 
-Not present in the active package. It was considered for graph updates because it can reuse search state, but the current API accepts full replacement snapshots and searches synchronously from scratch. No current production graph-update stream or representative update workload is integrated. Historical measurements are not sufficient to select or maintain incremental repair. D* Lite is not selected; that is an evidence limitation, not a claim it is universally slower.
+Implemented for evaluation and tested through repeated changes, but not selected for production: on the tested synthetic dynamic sequence its full update-to-route median was slower than fresh A* despite usually reducing expansions. Zero-cost graph updates explicitly trigger a full reset to avoid stale labels in zero-cost cycles. This conclusion is limited to the measured graph and update pattern; the timing rows predate that fallback, and current independent checks are in [GLOBAL_SEARCH.md](./GLOBAL_SEARCH.md).
 
 ## 7. Static search test campaign
 
@@ -146,9 +153,9 @@ This fingerprint is test-fixture evidence only. It is not a hash of a real produ
 | G17 | Replace snapshot and reuse a revision label. | Old result is no longer current because snapshot ID changed. |
 | G18 | Invalid edge, cost, mode, revision, adjacency or endpoint. | Input rejected; previous snapshot is disabled after rejected replacement. |
 
-Additional tests cover arbitrary node pairs on the multimodal fixture, three fixed-seed directed graphs, zero-cost edges, caller mutation after snapshot acceptance, missing endpoints, absent geometry/mode metadata, invalid coordinates, and large finite coordinates.
+Additional tests cover arbitrary node pairs on the multimodal fixture, three fixed-seed directed graphs, zero-cost edges and incremental zero-cost cycles, caller mutation after snapshot acceptance, missing endpoints, absent geometry/mode metadata, invalid coordinates, large finite coordinates and route costs, invalid route edges, and configured route-cost tolerance.
 
-All 40 collected test cases pass. This validates software behavior on synthetic supplied graphs, not completeness or physical safety of a real graph from the upstream producer.
+The final suite passes 59 tests. This validates software behavior on synthetic supplied graphs, not completeness or physical safety of a real graph from the upstream producer.
 
 ## 8. Replanning test campaign
 
@@ -162,7 +169,7 @@ All 40 collected test cases pass. This validates software behavior on synthetic 
 | R6: change goal | `replan` searches to the newly passed goal. | Controller goal protocol is not integrated. |
 | R7: full snapshot replacement | Snapshot copied; revision and internal ID are returned; old result fails `is_current`. | No ordering, cancellation, concurrency or executing-route stop policy. |
 
-These tests verify results, not replanning performance. D* Lite results are N/A because no active D* Lite code exists. Graph preparation/copy, search repair and total replanning latency have not been benchmarked as separate production metrics.
+The separate repeated dynamic benchmark measures update processing, replanning, total update-to-route time, expansions, cost against an updated Dijkstra reference, speedup and expansion reduction. Its historical results and current independent checks are summarized in [GLOBAL_SEARCH.md](./GLOBAL_SEARCH.md).
 
 ## 9. Algorithm comparison and decision
 
@@ -170,14 +177,17 @@ These tests verify results, not replanning performance. D* Lite results are N/A 
 
 | Method | Active implementation | Correctness contract | Current decision |
 |---|---|---|---|
-| Dijkstra | Yes | Exact for nonnegative supplied edge costs. | Default and oracle/reference. |
-| A* | Yes | Exact with derived admissible scale; otherwise zero heuristic. | Available alternative; not selected as faster. |
-| Optimized exact A* | No | Historically evaluated, not retained. | No selection without repeatable evidence. |
-| D* Lite | No | Historically evaluated, not retained. | No selection without real update-workload benefit. |
+| Dijkstra | Yes | Exact for nonnegative supplied edge costs. | Reference/validation; selectable production fallback. |
+| A* | Yes | Exact with derived admissible scale; otherwise zero heuristic. | Production default for initial planning and fresh replanning. |
+| Weighted A* | Evaluation-only | Approximate for weights above 1. | Optional only when measured cost degradation is explicitly acceptable. |
+| Bidirectional Dijkstra | Evaluation-only | Exact for nonnegative supplied edge costs. | Not selected; measured preprocessing overhead outweighed expansion savings in tested scenarios. |
+| Bidirectional A* | Evaluation-only | Exact using balanced potentials. | Not selected; measured overhead outweighed expansion savings in tested scenarios. |
+| LPA* | Evaluation-only | Incremental exact repair for tested changes. | Not selected for current snapshot workload; update-to-route time trailed fresh A*. |
+| D* Lite | Evaluation-only | Incremental exact repair for tested changes. | Not selected for current snapshot workload; update-to-route time trailed fresh A*. |
 
 ### Historical evidence (not a current production benchmark)
 
-An earlier reconstructed 11-label comparison recorded single observations for Dijkstra, exact A*, optimized exact A* and D* Lite. Its median search times were 0.080, 0.110, 0.129 and 1.125 ms, respectively. Although all 44 outcomes matched that run's expected outcomes, 8 of 11 reconstructed graph labels did not reproduce previous graph/route evidence. Each case/method had one observation. Those timings cannot select a production winner.
+An earlier reconstructed 11-label comparison recorded single observations. It is historical and superseded for algorithm selection by the repeated identical-graph campaign and independent review in [GLOBAL_SEARCH.md](./GLOBAL_SEARCH.md).
 
 A separate historical 12-configuration run recorded 144 serial observations, with three repeats per method/configuration. It reported these medians/P95 values:
 
@@ -194,7 +204,7 @@ Historical process-memory values used peak working set/RSS including worker star
 
 ### Decision
 
-**No performance winner is proven.** Dijkstra is the current default because it is simple, exact and independent of geometry. A* is supported when its admissibility condition holds; its fallback is also exact. There is no evidence from the actual producer's frozen graph/update workload to justify changing the default, adding optimized A*, or selecting D* Lite.
+**Current evidence-based choice:** safe A* is the production default for initial and fresh replanning; Dijkstra is the optimal reference; incremental algorithms remain evaluation-only. The benchmark report gives measured results and makes clear that synthetic graphs are not a substitute for producer workload evidence.
 
 ## 10. Metrics and how to interpret them
 
@@ -207,10 +217,10 @@ Historical process-memory values used peak working set/RSS including worker star
 | Total cost | Sum of supplied edge costs | Objective minimized by search. | Audited with `math.fsum` and tolerance. |
 | Route size | Number of returned nodes/edges | Search-output size only, not physical quality. | Derivable as `len(path)` / `len(edges)`; not a route-quality metric. |
 | `search_ms` | Milliseconds around the search function | Isolates algorithm call cost. | Excludes validation/copy, route audit, I/O, startup and message conversion. |
-| Replanning latency | Full update acceptance plus new planning | Operational update response. | Not exposed separately or benchmarked. |
-| Nodes expanded/explored/generated | Integer counters from the search. | Indicates graph work performed. | Returned in results and checked functionally, not a real workload benchmark. |
-| Peak memory | Peak bytes/MiB during relevant operation | Resource sizing. | Not measured by the current suite. Historical worker peak RSS is not planner-only memory. |
-| Queue operations/relaxations | Heap and edge operations | Optional diagnostic. | Not instrumented currently. |
+| Replanning latency | Update processing, search/repair, and total update-to-route time | Operational update response. | Measured across four repeated synthetic changes; see the evaluation report. |
+| Nodes expanded/explored/generated and edge evaluations | Integer counters from each search/update. | Indicates graph work performed. | Recorded in benchmark summaries and raw samples. |
+| Peak memory | Peak bytes/MiB during relevant operation | Resource sizing. | `tracemalloc` peak Python allocation is recorded only for the small static case; not RSS. |
+| Runtime distribution | Median, mean, sample standard deviation, min and max | Captures central tendency and variability. | Ten static repetitions; five complete dynamic-sequence repetitions. |
 
 No clearance, curvature, slope, terrain, reverse-motion or physical feasibility metrics are planner metrics. The producer owns those checks.
 
@@ -261,7 +271,7 @@ The exact removed path list and cleanup audit are preserved in `evidence/global_
 - `evidence/global_planner/scope_cleanup/package.txt` and `package_demo.txt`: prior package build/example evidence with its build-tool limitation.
 - `evidence/global_planner/history/`: prior search raw data, manifests, audit and reconstructed comparisons.
 
-No current benchmark output exists for the 40-case suite. Pytest total duration is not planner latency.
+The repeated algorithm campaign and independent review are summarized in [GLOBAL_SEARCH.md](./GLOBAL_SEARCH.md), with raw and summary CSVs under `benchmark_results/`. These are synthetic supplied graphs and do not define production latency budgets.
 
 ## 14. Test evidence and reproduction
 
@@ -277,7 +287,7 @@ Commands:
 Latest regression output:
 
 ```text
-40 passed in 0.13s
+59 passed
 ```
 
 The demo output:
@@ -303,8 +313,9 @@ The source, tests, documentation and preserved historical evidence were reviewed
 
 ## 16. Status by confidence
 
-- **PROVEN BY TEST:** Both active searches match an independent minimum-cost reference on the synthetic campaign; route edge/cost audits, invalid-input rejection and stale-result checks pass.
-- **IMPLEMENTED CURRENT PROTOTYPE:** Explicit complete-graph snapshot input; Dijkstra default; A* with safe derived or zero heuristic; synchronous full-snapshot replanning.
+- **PROVEN BY TEST:** Production Dijkstra/A* and evaluation algorithms passed their synthetic correctness checks; route validity/cost audits, invalid-input rejection and repeated graph-change checks pass.
+- **MEASURED ON SYNTHETIC FIXTURES:** Safe A* substantially reduced work on geometric grids; fresh A* beat incremental methods in total update-to-route time on the tested dynamic sequence.
+- **IMPLEMENTED CURRENT PROTOTYPE:** Explicit complete-graph snapshot input; safe A* default, selectable exact Dijkstra reference; synchronous full-snapshot replanning.
 - **SUPPORTED BY THEORY:** Dijkstra exactness for nonnegative costs; A* exactness under the documented lower-bound heuristic or `h=0`.
 - **CONFIGURABLE:** Search method (`dijkstra` or `astar`) and cost-audit tolerance.
 - **NOT YET CONFIRMED:** Actual producer contract, graph completeness/physical validity, coordinate frame and common cost units.
@@ -362,31 +373,7 @@ graph producer topic/service
 
 The wrapper should translate the agreed message to `Graph`, pass start/goal IDs, publish route and version, and define how consumers react to stale results. Keep graph generation upstream.
 
-## 20. Figures for the final Word document
-
-1. **System responsibility boundary:** mapping/costmap/graph producer on one side; global planner; local controller on the other, with ownership labels and explicit exclusions.
-2. **Supplied graph to route:** versioned nodes/edges/costs into snapshot validation, Dijkstra/A* search, route/cost audit and result.
-3. **Planning request sequence:** request with graph version/start/goal, search, route or no-path response, consumer freshness check.
-4. **Replanning after update:** old result/version, full new snapshot, replacement search, old result stale check and new route.
-5. **Algorithm comparison flow:** one frozen graph fingerprint fed to Dijkstra and A* and compared to independent repeated relaxation; annotate that current performance winner is unconfirmed.
-6. **Future ROS 2 architecture:** producer topic/service → one global planner node → route topic/service → local controller; clearly marked future/integration work.
-
-## 21. Tables for the final Word document
-
-1. Responsibility and owner table.
-2. Graph/node/edge/request input schema table.
-3. Planning result fields and error/no-path/stale behavior table.
-4. Production file inventory and module call relationships.
-5. Algorithm capability, assumptions and implementation-status table.
-6. Static graph campaign G1–G18 with fixture purpose, expected/actual result, and algorithm.
-7. Replanning campaign R1–R7 with update, expected/actual result and performance-not-measured note.
-8. Historical benchmark comparison table with method, correctness, cost status, timing, repetitions and caveats.
-9. Metrics definition/unit/measurement/limitation table.
-10. Failure/root-cause/fix/verification table.
-11. Cleanup inventory with active files retained, removed groups/counts and evidence paths.
-12. Assumptions/open integration questions/status table.
-
-## 22. Final project status
+## 20. Final project status
 
 ### Done in software
 
@@ -399,21 +386,23 @@ The wrapper should translate the agreed message to `Graph`, pass start/goal IDs,
 
 ### Tested
 
-- 40 current pytest cases pass.
+- 59 current pytest cases pass.
 - Supplied-graph demo passes.
 - Active searches agree with independent reference costs across covered synthetic graphs.
 
 ### Selected
 
-- Dijkstra is the implementation default and correctness baseline.
-- A* is available as an exact alternative only with the derived lower bound or `h=0`.
-- No performance winner is selected from historical, mismatched, or non-production evidence.
+- Safe A* is the production default for initial planning and fresh full-snapshot replanning in the tested workload.
+- Dijkstra is the optimal reference and selectable fallback.
+- Weighted A* is not automatic; weights 1.5 and 2 traded 25% higher cost for 99.7% fewer expansions on the constructed tradeoff fixture.
+- LPA* and D* Lite remain evaluation-only because measured end-to-end update times did not beat fresh A* on the tested sequence.
+- These are synthetic benchmark decisions, not final validation on actual producer graphs.
 
 ### Not yet integrated
 
 - Actual producer schema/converter and producer graph fixtures.
 - Live graph-update transport, controller output contract and execution freshness policy.
-- Representative end-to-end latency and memory measurements.
+- Representative producer-graph, end-to-end latency and memory measurements.
 
 ### Not our responsibility
 
@@ -422,6 +411,6 @@ The wrapper should translate the agreed message to `Graph`, pass start/goal IDs,
 ### Future work
 
 - Agree and connect producer/consumer messages.
-- Benchmark identical versioned producer snapshots with repeated measurements and graph preparation separated from search.
+- Re-run the identical-graph campaign with versioned producer snapshots, real update rates, and end-to-end graph preparation and search measurements.
 - Reconsider optimized exact A* or D* Lite only if real workload evidence justifies their complexity.
 - Integrate with simulation and later perform real-robot validation through their owners.
