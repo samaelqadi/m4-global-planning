@@ -10,19 +10,20 @@ class MotionMode(str, Enum):
 
 @dataclass(frozen=True, slots=True)
 class Node:
-    node_id: int              # unique node number
-    x: float                  # x position in meters
-    y: float                  # y position in meters
-    z: float                  # z position in meters
-    mode: MotionMode          # walk or fly
-    yaw: float | None = None  # heading if we need it later
+    node_id: int
+    x: float | None = None
+    y: float | None = None
+    z: float | None = None
+    mode: MotionMode | None = None
+    yaw: float | None = None
 
     def __post_init__(self):
-        # make sure the position values are valid
-        if not all(isfinite(value) for value in (self.x, self.y, self.z)):
-            raise ValueError('Node position is not valid')
+        if self.x is not None or self.y is not None or self.z is not None:
+            if self.x is None or self.y is None or self.z is None:
+                raise ValueError('Node position must be complete or omitted')
+            if not (isfinite(self.x) and isfinite(self.y) and isfinite(self.z)):
+                raise ValueError('Node position is not valid')
 
-        # make sure yaw is valid if it is used
         if self.yaw is not None and not isfinite(self.yaw):
             raise ValueError('Node yaw is not valid')
 

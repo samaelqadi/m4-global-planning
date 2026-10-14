@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "m4-global-planner"
+version = "0.1.0"
+description = "Minimum-cost route search over supplied weighted graphs"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+test = ["pytest>=7,<10"]
+
+[tool.setuptools.packages.find]
+where = ["src/m4_global_planner"]
+include = ["m4_global_planner*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src/m4_global_planner"]
+testpaths = ["src/m4_global_planner/test"]

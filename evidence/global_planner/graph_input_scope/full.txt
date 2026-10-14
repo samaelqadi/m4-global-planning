@@ -1,0 +1,2285 @@
+Command: C:\Users\samat\OneDrive\Desktop\GP\.venv\Scripts\python.exe -m pytest -q -p no:cacheprovider --basetemp C:\Users\samat\.codex\.chatgpt-projects\g-p-6a88008b63f48191ba3fd7cef936102d\output\supplied_graph\full_tmp --junitxml C:\Users\samat\.codex\.chatgpt-projects\g-p-6a88008b63f48191ba3fd7cef936102d\output\supplied_graph\full.xml
+............FFFFFFFFFFFFF....F.......................................... [ 17%]
+.........................................................F..F........... [ 35%]
+..........................................F..F.......................... [ 52%]
+.............FFFFFFFF.......F.FFFF.FFF...........................F..FF.. [ 70%]
+.F...........................................................FFFFFFFFFFF [ 88%]
+FFFFFFFFFF..FF..................................                         [100%]
+================================== FAILURES ===================================
+______ test_passage_pose_insertion_and_neighbor_reservation_are_distinct ______
+
+    def test_passage_pose_insertion_and_neighbor_reservation_are_distinct():
+        case = DATA['joint_representation_pilot']['cases'][0]
+        rows = []
+        for policy in ('off', 'poses', 'edges'):
+>           rows.append(run({'case': case, 'seed': 11, 'candidate': 'roadmap',
+                             'planner_overrides': {'walk_roadmap': {
+                                 'attachment_chain_policy': policy, 'max_chain_attempts': 256}}}))
+
+src\m4_global_planner\test\test_connectivity_followup.py:37: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+job = {'case': {'scenario': 'W07_narrow_valid_passage', 'parameters': {'spatial_resolution': 0.2}}, 'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'walk_roadmap': {'attachment_chain_policy': 'off', 'max_chain_attempts': 256}}}
+
+    def run(job):
+        # Independent test-only loop, intentionally separate from production Dijkstra.
+        from test_graph_optimality import dijkstra_path
+    
+        data = load_scenario_data(default_scenario_path())
+        config = data['joint_representation_pilot']
+        case = job['case']
+        scenario = data['scenarios'][case['scenario']]
+        # Fixture map overrides are benchmark-only; no fixture labels reach builders.
+        if 'world_override' in case:
+            scenario = {'world': case['world_override']}
+        parameters = _merge_settings(get_scenario_parameters(data, case['scenario']),
+                                     config['shared_parameters'])
+        parameters = _merge_settings(parameters, case.get('parameters', {}))
+        parameters = _merge_settings(parameters, job.get('parameter_overrides', {}))
+        settings = _merge_settings(data['joint_planner'], {
+            'walk_approach': 'lattice' if job['candidate'] == 'lattice' else 'roadmap',
+            'fly_approach': 'adaptive_lattice' if job['candidate'] == 'lattice' else 'sparse_roadmap',
+            'walk_roadmap': config['walk_roadmap'],
+        })
+        settings = _merge_settings(settings, job.get('planner_overrides', {}))
+        settings = _merge_settings(settings, case.get('planner_overrides', {}))
+        request = case.get('request', data['walk_benchmark']['requests'].get(
+            case['scenario'], scenario))
+        endpoints = {}
+        for i, name in enumerate(('start', 'goal')):
+            record = request[name]
+            mode = MotionMode(record.get('mode', case.get('endpoint_mode', 'walk')))
+            endpoints[name] = Node(i, *record['position'], mode,
+                                   radians(record['heading_deg']) if mode == MotionMode.WALK else None)
+        planning_map = DummyPlanningMap(scenario)
+        walk, fly = WalkStateValidator(parameters), FlyStateValidator(parameters)
+        builder = MandatoryAnchorBuilder(parameters, walk, fly,
+                                         TransitionValidator(parameters, walk, fly))
+        baseline = peak_process_memory_mib()
+        print('construction', file=sys.stderr, flush=True)
+        began = perf_counter()
+        current = JointPlanner(parameters, settings, planning_map, builder, endpoints, job['seed'])
+        built = perf_counter()
+        graph = current.graph
+        if (len(graph.nodes) > config['max_joint_nodes']
+                or sum(map(len, graph.edges.values())) > config['max_joint_edges']):
+            raise BudgetExceeded('Joint graph resource budget exceeded')
+        identity = fingerprint(current)
+        anchor_hash = hashlib.sha256(repr(current.anchors).encode()).hexdigest()
+        source, goal = current.endpoints['start'], current.endpoints['goal']
+        print('verification', file=sys.stderr, flush=True)
+        verification_start = perf_counter()
+        heuristic_audit = verify_heuristic(graph, goal, current.scale, 1e-9)
+        reference_cost, reference_path = dijkstra_path(graph, source, goal)
+        if reference_path:
+            current.validate_route(reference_path, source, goal, reference_cost)
+        verification_ms = (perf_counter() - verification_start) * 1000
+        searches = []
+        for method in ('dijkstra', 'astar'):
+            print(method, file=sys.stderr, flush=True)
+            start = perf_counter()
+            if method == 'dijkstra':
+                result = dijkstra(graph, source, goal)
+            else:
+                result = astar(graph, source, goal, heuristic_scale=current.scale)
+            searched = perf_counter()
+            if result['success']:
+                current.validate_route(result['path'], source, goal, result['total_cost'])
+            audited = perf_counter()
+            assert fingerprint(current) == identity
+            searches.append({'method': method, 'success': result['success'],
+                             'cost': result['total_cost'] if result['success'] else None,
+                             'path': result['path'], 'search_ms': (searched - start) * 1000,
+                             'audit_ms': (audited - searched) * 1000,
+                             'explored': result.get('nodes_explored'),
+                             'pops': result['nodes_expanded'],
+                             'validated': True, 'executable': False})
+        assert bool(reference_path) == searches[0]['success']
+        if reference_path:
+            assert isclose(reference_cost, searches[0]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        assert searches[0]['success'] == searches[1]['success']
+        if searches[0]['success']:
+            assert isclose(searches[0]['cost'], searches[1]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        route = searches[0]['path']
+        transitions = [(graph.nodes[a].x, graph.nodes[a].y, graph.nodes[a].z,
+                        graph.nodes[a].mode.value, graph.nodes[b].mode.value)
+                       for a, b in zip(route, route[1:]) if graph.nodes[a].mode != graph.nodes[b].mode]
+        # Directed reachability supports failure diagnosis, independent of heuristic choice.
+        reached, frontier = {source}, [source]
+        while frontier:
+            node = frontier.pop()
+            for target in graph.edges[node]:
+                if target not in reached:
+                    reached.add(target)
+                    frontier.append(target)
+        mode_counts = {}
+        for mode in (MotionMode.WALK, MotionMode.FLY):
+            ids = {n.node_id for n in graph.nodes.values() if n.mode == mode}
+            mode_counts[mode.value] = {'nodes': len(ids), 'reachable': len(ids & reached),
+                                       'edges': sum(len(graph.edges[n]) for n in ids)}
+        for result in searches:
+            result['poses'] = [{**asdict(graph.nodes[n]), 'mode': graph.nodes[n].mode.value}
+                               for n in result['path']]
+            result['walk_primitives'] = [
+                [asdict(s) for s in current.paths.get((a, b),
+                 [current.pose(graph.nodes[a]), current.pose(graph.nodes[b])])]
+                for a, b in zip(result['path'], result['path'][1:])
+                if graph.nodes[a].mode == graph.nodes[b].mode == MotionMode.WALK]
+            counts, prices = {}, {}
+            for chain in result['walk_primitives']:
+                for first, second in zip(chain, chain[1:]):
+                    edge = current.motions.edge(PoseState(**first), PoseState(**second))
+                    counts[edge.motion] = counts.get(edge.motion, 0) + 1
+                    prices[edge.motion] = prices.get(edge.motion, 0.0) + edge.cost
+            result['walk_motion_counts'], result['walk_motion_costs'] = counts, prices
+            result['altitude_range'] = ([min(n['z'] for n in result['poses']),
+                                         max(n['z'] for n in result['poses'])]
+                                        if result['poses'] else None)
+        return {**job, 'status': 'success' if route else 'graph_no_path',
+                'construction_ms': (built - began) * 1000, 'nodes': len(graph.nodes),
+                'edges': sum(map(len, graph.edges.values())), 'reachable_nodes': len(reached),
+>               'reachable_goal': goal in reached, 'construction_stats': current.construction_stats,
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                'mode_counts': mode_counts,
+                'endpoint_outdegrees': [len(graph.edges[n]) for n in (source, goal)],
+                'verification_ms': verification_ms, 'heuristic_audit': heuristic_audit,
+                'reference_cost': reference_cost if reference_path else None,
+                'reference_verified': True,
+                'anchors_sha256': anchor_hash, 'graph_sha256': identity,
+                'transition_anchors': len(current.anchors.transitions), 'transitions': transitions,
+                'peak_rss_mib': peak_process_memory_mib(),
+                'baseline_high_water_mib': baseline, 'settings': settings, 'parameters': parameters,
+                'rss_growth_mib': peak_process_memory_mib() - baseline,
+                'searches': searches}
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\m4_global_planner\joint_representation_benchmark.py:148: AttributeError
+---------------------------- Captured stderr call -----------------------------
+construction
+verification
+dijkstra
+astar
+____ test_component_bridges_add_only_valid_joining_edges_and_preserve_knn _____
+
+    def test_component_bridges_add_only_valid_joining_edges_and_preserve_knn():
+        graph, planning_map, validator, tuning = fly_fixture()
+        connect(graph, planning_map, validator, tuning)
+>       stats = graph.construction_stats
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Graph' object has no attribute 'construction_stats'
+
+src\m4_global_planner\test\test_connectivity_followup.py:67: AttributeError
+________________ test_component_bridges_do_not_cross_obstacles ________________
+
+    def test_component_bridges_do_not_cross_obstacles():
+        graph, planning_map, validator, tuning = fly_fixture(blocked=True)
+        connect(graph, planning_map, validator, tuning)
+        assert not dijkstra_path(graph, 0, 3)[1]
+>       assert graph.construction_stats['bridge_proposed_pairs'] == 4
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'Graph' object has no attribute 'construction_stats'
+
+src\m4_global_planner\test\test_connectivity_followup.py:82: AttributeError
+_ test_component_bridge_budgets[max_connection_attempts-2-Connection attempt] _
+
+setting = 'max_connection_attempts', value = 2, message = 'Connection attempt'
+
+    @pytest.mark.parametrize('setting,value,message', [
+        ('max_connection_attempts', 2, 'Connection attempt'),
+        ('max_bridge_candidates', 1, 'candidate storage'),
+        ('max_edges', 4, 'Edge budget'),
+    ])
+    def test_component_bridge_budgets(setting, value, message):
+        graph, planning_map, validator, tuning = fly_fixture()
+        tuning[setting] = value
+>       with pytest.raises(BudgetExceeded, match=message):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE BudgetExceeded
+
+src\m4_global_planner\test\test_connectivity_followup.py:94: Failed
+__ test_component_bridge_budgets[max_bridge_candidates-1-candidate storage] ___
+
+setting = 'max_bridge_candidates', value = 1, message = 'candidate storage'
+
+    @pytest.mark.parametrize('setting,value,message', [
+        ('max_connection_attempts', 2, 'Connection attempt'),
+        ('max_bridge_candidates', 1, 'candidate storage'),
+        ('max_edges', 4, 'Edge budget'),
+    ])
+    def test_component_bridge_budgets(setting, value, message):
+        graph, planning_map, validator, tuning = fly_fixture()
+        tuning[setting] = value
+>       with pytest.raises(BudgetExceeded, match=message):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE BudgetExceeded
+
+src\m4_global_planner\test\test_connectivity_followup.py:94: Failed
+___________ test_component_bridge_budgets[max_edges-4-Edge budget] ____________
+
+setting = 'max_edges', value = 4, message = 'Edge budget'
+
+    @pytest.mark.parametrize('setting,value,message', [
+        ('max_connection_attempts', 2, 'Connection attempt'),
+        ('max_bridge_candidates', 1, 'candidate storage'),
+        ('max_edges', 4, 'Edge budget'),
+    ])
+    def test_component_bridge_budgets(setting, value, message):
+        graph, planning_map, validator, tuning = fly_fixture()
+        tuning[setting] = value
+>       with pytest.raises(BudgetExceeded, match=message):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE BudgetExceeded
+
+src\m4_global_planner\test\test_connectivity_followup.py:94: Failed
+_______ test_positive_translation_clearance_preserves_docks_and_morphs ________
+
+    def test_positive_translation_clearance_preserves_docks_and_morphs():
+        _, parameters, planning_map, _, _ = setup_scenario('T01_open_transition')
+        ground, air = Node(0, 2, 2, 0, MotionMode.FLY), Node(1, 2, 2, 1, MotionMode.FLY)
+        original = FlyStateValidator(parameters)
+        parameters['fly_validation']['translation_min_ground_clearance'] = .2
+        positive = FlyStateValidator(parameters)
+        walk = WalkStateValidator(parameters)
+        transitions = TransitionValidator(parameters, walk, positive)
+        assert original.is_edge_valid(ground, air, planning_map)
+        assert positive.is_valid(ground, planning_map)
+        assert transitions.is_valid(PoseState(2, 2, 0, 0), ground, planning_map)
+>       assert not positive.is_edge_valid(ground, air, planning_map)
+E       AssertionError: assert not True
+E        +  where True = is_edge_valid(Node(node_id=0, x=2, y=2, z=0, mode=<MotionMode.FLY: 'fly'>, yaw=None), Node(node_id=1, x=2, y=2, z=1, mode=<MotionMode.FLY: 'fly'>, yaw=None), <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3F08E480>)
+E        +    where is_edge_valid = <m4_global_planner.representation.fly_validator.FlyStateValidator object at 0x000001FE3F08FBC0>.is_edge_valid
+
+src\m4_global_planner\test\test_connectivity_followup.py:109: AssertionError
+___________________ test_invalid_translation_clearance[-1] ____________________
+
+clearance = -1
+
+    @pytest.mark.parametrize('clearance', [-1, float('inf'), float('nan')])
+    def test_invalid_translation_clearance(clearance):
+        parameters = deepcopy(DATA['test_parameters'])
+        parameters['fly_validation']['translation_min_ground_clearance'] = clearance
+>       with pytest.raises(ValueError, match='clearance'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_connectivity_followup.py:121: Failed
+___________________ test_invalid_translation_clearance[inf] ___________________
+
+clearance = inf
+
+    @pytest.mark.parametrize('clearance', [-1, float('inf'), float('nan')])
+    def test_invalid_translation_clearance(clearance):
+        parameters = deepcopy(DATA['test_parameters'])
+        parameters['fly_validation']['translation_min_ground_clearance'] = clearance
+>       with pytest.raises(ValueError, match='clearance'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_connectivity_followup.py:121: Failed
+___________________ test_invalid_translation_clearance[nan] ___________________
+
+clearance = nan
+
+    @pytest.mark.parametrize('clearance', [-1, float('inf'), float('nan')])
+    def test_invalid_translation_clearance(clearance):
+        parameters = deepcopy(DATA['test_parameters'])
+        parameters['fly_validation']['translation_min_ground_clearance'] = clearance
+>       with pytest.raises(ValueError, match='clearance'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_connectivity_followup.py:121: Failed
+____ test_positive_clearance_joint_routes_and_unchanged_anchors[4-success] ____
+
+case_index = 4, expected = 'success'
+
+    @pytest.mark.parametrize('case_index,expected', [(4, 'success'), (7, 'graph_no_path')])
+    def test_positive_clearance_joint_routes_and_unchanged_anchors(case_index, expected):
+        job = {'case': DATA['joint_representation_pilot']['cases'][case_index],
+               'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'fly_graph': {
+                   'connectivity_policy': 'component_bridges', 'max_bridge_candidates': 300000}}}
+>       geometric = run(job)
+                    ^^^^^^^^
+
+src\m4_global_planner\test\test_connectivity_followup.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+job = {'case': {'scenario': 'F06_multiple_altitudes', 'endpoint_mode': 'fly'}, 'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'fly_graph': {'connectivity_policy': 'component_bridges', 'max_bridge_candidates': 300000}}}
+
+    def run(job):
+        # Independent test-only loop, intentionally separate from production Dijkstra.
+        from test_graph_optimality import dijkstra_path
+    
+        data = load_scenario_data(default_scenario_path())
+        config = data['joint_representation_pilot']
+        case = job['case']
+        scenario = data['scenarios'][case['scenario']]
+        # Fixture map overrides are benchmark-only; no fixture labels reach builders.
+        if 'world_override' in case:
+            scenario = {'world': case['world_override']}
+        parameters = _merge_settings(get_scenario_parameters(data, case['scenario']),
+                                     config['shared_parameters'])
+        parameters = _merge_settings(parameters, case.get('parameters', {}))
+        parameters = _merge_settings(parameters, job.get('parameter_overrides', {}))
+        settings = _merge_settings(data['joint_planner'], {
+            'walk_approach': 'lattice' if job['candidate'] == 'lattice' else 'roadmap',
+            'fly_approach': 'adaptive_lattice' if job['candidate'] == 'lattice' else 'sparse_roadmap',
+            'walk_roadmap': config['walk_roadmap'],
+        })
+        settings = _merge_settings(settings, job.get('planner_overrides', {}))
+        settings = _merge_settings(settings, case.get('planner_overrides', {}))
+        request = case.get('request', data['walk_benchmark']['requests'].get(
+            case['scenario'], scenario))
+        endpoints = {}
+        for i, name in enumerate(('start', 'goal')):
+            record = request[name]
+            mode = MotionMode(record.get('mode', case.get('endpoint_mode', 'walk')))
+            endpoints[name] = Node(i, *record['position'], mode,
+                                   radians(record['heading_deg']) if mode == MotionMode.WALK else None)
+        planning_map = DummyPlanningMap(scenario)
+        walk, fly = WalkStateValidator(parameters), FlyStateValidator(parameters)
+        builder = MandatoryAnchorBuilder(parameters, walk, fly,
+                                         TransitionValidator(parameters, walk, fly))
+        baseline = peak_process_memory_mib()
+        print('construction', file=sys.stderr, flush=True)
+        began = perf_counter()
+        current = JointPlanner(parameters, settings, planning_map, builder, endpoints, job['seed'])
+        built = perf_counter()
+        graph = current.graph
+        if (len(graph.nodes) > config['max_joint_nodes']
+                or sum(map(len, graph.edges.values())) > config['max_joint_edges']):
+            raise BudgetExceeded('Joint graph resource budget exceeded')
+        identity = fingerprint(current)
+        anchor_hash = hashlib.sha256(repr(current.anchors).encode()).hexdigest()
+        source, goal = current.endpoints['start'], current.endpoints['goal']
+        print('verification', file=sys.stderr, flush=True)
+        verification_start = perf_counter()
+        heuristic_audit = verify_heuristic(graph, goal, current.scale, 1e-9)
+        reference_cost, reference_path = dijkstra_path(graph, source, goal)
+        if reference_path:
+            current.validate_route(reference_path, source, goal, reference_cost)
+        verification_ms = (perf_counter() - verification_start) * 1000
+        searches = []
+        for method in ('dijkstra', 'astar'):
+            print(method, file=sys.stderr, flush=True)
+            start = perf_counter()
+            if method == 'dijkstra':
+                result = dijkstra(graph, source, goal)
+            else:
+                result = astar(graph, source, goal, heuristic_scale=current.scale)
+            searched = perf_counter()
+            if result['success']:
+                current.validate_route(result['path'], source, goal, result['total_cost'])
+            audited = perf_counter()
+            assert fingerprint(current) == identity
+            searches.append({'method': method, 'success': result['success'],
+                             'cost': result['total_cost'] if result['success'] else None,
+                             'path': result['path'], 'search_ms': (searched - start) * 1000,
+                             'audit_ms': (audited - searched) * 1000,
+                             'explored': result.get('nodes_explored'),
+                             'pops': result['nodes_expanded'],
+                             'validated': True, 'executable': False})
+        assert bool(reference_path) == searches[0]['success']
+        if reference_path:
+            assert isclose(reference_cost, searches[0]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        assert searches[0]['success'] == searches[1]['success']
+        if searches[0]['success']:
+            assert isclose(searches[0]['cost'], searches[1]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        route = searches[0]['path']
+        transitions = [(graph.nodes[a].x, graph.nodes[a].y, graph.nodes[a].z,
+                        graph.nodes[a].mode.value, graph.nodes[b].mode.value)
+                       for a, b in zip(route, route[1:]) if graph.nodes[a].mode != graph.nodes[b].mode]
+        # Directed reachability supports failure diagnosis, independent of heuristic choice.
+        reached, frontier = {source}, [source]
+        while frontier:
+            node = frontier.pop()
+            for target in graph.edges[node]:
+                if target not in reached:
+                    reached.add(target)
+                    frontier.append(target)
+        mode_counts = {}
+        for mode in (MotionMode.WALK, MotionMode.FLY):
+            ids = {n.node_id for n in graph.nodes.values() if n.mode == mode}
+            mode_counts[mode.value] = {'nodes': len(ids), 'reachable': len(ids & reached),
+                                       'edges': sum(len(graph.edges[n]) for n in ids)}
+        for result in searches:
+            result['poses'] = [{**asdict(graph.nodes[n]), 'mode': graph.nodes[n].mode.value}
+                               for n in result['path']]
+            result['walk_primitives'] = [
+                [asdict(s) for s in current.paths.get((a, b),
+                 [current.pose(graph.nodes[a]), current.pose(graph.nodes[b])])]
+                for a, b in zip(result['path'], result['path'][1:])
+                if graph.nodes[a].mode == graph.nodes[b].mode == MotionMode.WALK]
+            counts, prices = {}, {}
+            for chain in result['walk_primitives']:
+                for first, second in zip(chain, chain[1:]):
+                    edge = current.motions.edge(PoseState(**first), PoseState(**second))
+                    counts[edge.motion] = counts.get(edge.motion, 0) + 1
+                    prices[edge.motion] = prices.get(edge.motion, 0.0) + edge.cost
+            result['walk_motion_counts'], result['walk_motion_costs'] = counts, prices
+            result['altitude_range'] = ([min(n['z'] for n in result['poses']),
+                                         max(n['z'] for n in result['poses'])]
+                                        if result['poses'] else None)
+        return {**job, 'status': 'success' if route else 'graph_no_path',
+                'construction_ms': (built - began) * 1000, 'nodes': len(graph.nodes),
+                'edges': sum(map(len, graph.edges.values())), 'reachable_nodes': len(reached),
+>               'reachable_goal': goal in reached, 'construction_stats': current.construction_stats,
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                'mode_counts': mode_counts,
+                'endpoint_outdegrees': [len(graph.edges[n]) for n in (source, goal)],
+                'verification_ms': verification_ms, 'heuristic_audit': heuristic_audit,
+                'reference_cost': reference_cost if reference_path else None,
+                'reference_verified': True,
+                'anchors_sha256': anchor_hash, 'graph_sha256': identity,
+                'transition_anchors': len(current.anchors.transitions), 'transitions': transitions,
+                'peak_rss_mib': peak_process_memory_mib(),
+                'baseline_high_water_mib': baseline, 'settings': settings, 'parameters': parameters,
+                'rss_growth_mib': peak_process_memory_mib() - baseline,
+                'searches': searches}
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\m4_global_planner\joint_representation_benchmark.py:148: AttributeError
+---------------------------- Captured stderr call -----------------------------
+construction
+verification
+dijkstra
+astar
+_ test_positive_clearance_joint_routes_and_unchanged_anchors[7-graph_no_path] _
+
+case_index = 7, expected = 'graph_no_path'
+
+    @pytest.mark.parametrize('case_index,expected', [(4, 'success'), (7, 'graph_no_path')])
+    def test_positive_clearance_joint_routes_and_unchanged_anchors(case_index, expected):
+        job = {'case': DATA['joint_representation_pilot']['cases'][case_index],
+               'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'fly_graph': {
+                   'connectivity_policy': 'component_bridges', 'max_bridge_candidates': 300000}}}
+>       geometric = run(job)
+                    ^^^^^^^^
+
+src\m4_global_planner\test\test_connectivity_followup.py:130: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+job = {'case': {'scenario': 'T05_flight_bridge'}, 'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'fly_graph': {'connectivity_policy': 'component_bridges', 'max_bridge_candidates': 300000}}}
+
+    def run(job):
+        # Independent test-only loop, intentionally separate from production Dijkstra.
+        from test_graph_optimality import dijkstra_path
+    
+        data = load_scenario_data(default_scenario_path())
+        config = data['joint_representation_pilot']
+        case = job['case']
+        scenario = data['scenarios'][case['scenario']]
+        # Fixture map overrides are benchmark-only; no fixture labels reach builders.
+        if 'world_override' in case:
+            scenario = {'world': case['world_override']}
+        parameters = _merge_settings(get_scenario_parameters(data, case['scenario']),
+                                     config['shared_parameters'])
+        parameters = _merge_settings(parameters, case.get('parameters', {}))
+        parameters = _merge_settings(parameters, job.get('parameter_overrides', {}))
+        settings = _merge_settings(data['joint_planner'], {
+            'walk_approach': 'lattice' if job['candidate'] == 'lattice' else 'roadmap',
+            'fly_approach': 'adaptive_lattice' if job['candidate'] == 'lattice' else 'sparse_roadmap',
+            'walk_roadmap': config['walk_roadmap'],
+        })
+        settings = _merge_settings(settings, job.get('planner_overrides', {}))
+        settings = _merge_settings(settings, case.get('planner_overrides', {}))
+        request = case.get('request', data['walk_benchmark']['requests'].get(
+            case['scenario'], scenario))
+        endpoints = {}
+        for i, name in enumerate(('start', 'goal')):
+            record = request[name]
+            mode = MotionMode(record.get('mode', case.get('endpoint_mode', 'walk')))
+            endpoints[name] = Node(i, *record['position'], mode,
+                                   radians(record['heading_deg']) if mode == MotionMode.WALK else None)
+        planning_map = DummyPlanningMap(scenario)
+        walk, fly = WalkStateValidator(parameters), FlyStateValidator(parameters)
+        builder = MandatoryAnchorBuilder(parameters, walk, fly,
+                                         TransitionValidator(parameters, walk, fly))
+        baseline = peak_process_memory_mib()
+        print('construction', file=sys.stderr, flush=True)
+        began = perf_counter()
+        current = JointPlanner(parameters, settings, planning_map, builder, endpoints, job['seed'])
+        built = perf_counter()
+        graph = current.graph
+        if (len(graph.nodes) > config['max_joint_nodes']
+                or sum(map(len, graph.edges.values())) > config['max_joint_edges']):
+            raise BudgetExceeded('Joint graph resource budget exceeded')
+        identity = fingerprint(current)
+        anchor_hash = hashlib.sha256(repr(current.anchors).encode()).hexdigest()
+        source, goal = current.endpoints['start'], current.endpoints['goal']
+        print('verification', file=sys.stderr, flush=True)
+        verification_start = perf_counter()
+        heuristic_audit = verify_heuristic(graph, goal, current.scale, 1e-9)
+        reference_cost, reference_path = dijkstra_path(graph, source, goal)
+        if reference_path:
+            current.validate_route(reference_path, source, goal, reference_cost)
+        verification_ms = (perf_counter() - verification_start) * 1000
+        searches = []
+        for method in ('dijkstra', 'astar'):
+            print(method, file=sys.stderr, flush=True)
+            start = perf_counter()
+            if method == 'dijkstra':
+                result = dijkstra(graph, source, goal)
+            else:
+                result = astar(graph, source, goal, heuristic_scale=current.scale)
+            searched = perf_counter()
+            if result['success']:
+                current.validate_route(result['path'], source, goal, result['total_cost'])
+            audited = perf_counter()
+            assert fingerprint(current) == identity
+            searches.append({'method': method, 'success': result['success'],
+                             'cost': result['total_cost'] if result['success'] else None,
+                             'path': result['path'], 'search_ms': (searched - start) * 1000,
+                             'audit_ms': (audited - searched) * 1000,
+                             'explored': result.get('nodes_explored'),
+                             'pops': result['nodes_expanded'],
+                             'validated': True, 'executable': False})
+        assert bool(reference_path) == searches[0]['success']
+        if reference_path:
+            assert isclose(reference_cost, searches[0]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        assert searches[0]['success'] == searches[1]['success']
+        if searches[0]['success']:
+            assert isclose(searches[0]['cost'], searches[1]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        route = searches[0]['path']
+        transitions = [(graph.nodes[a].x, graph.nodes[a].y, graph.nodes[a].z,
+                        graph.nodes[a].mode.value, graph.nodes[b].mode.value)
+                       for a, b in zip(route, route[1:]) if graph.nodes[a].mode != graph.nodes[b].mode]
+        # Directed reachability supports failure diagnosis, independent of heuristic choice.
+        reached, frontier = {source}, [source]
+        while frontier:
+            node = frontier.pop()
+            for target in graph.edges[node]:
+                if target not in reached:
+                    reached.add(target)
+                    frontier.append(target)
+        mode_counts = {}
+        for mode in (MotionMode.WALK, MotionMode.FLY):
+            ids = {n.node_id for n in graph.nodes.values() if n.mode == mode}
+            mode_counts[mode.value] = {'nodes': len(ids), 'reachable': len(ids & reached),
+                                       'edges': sum(len(graph.edges[n]) for n in ids)}
+        for result in searches:
+            result['poses'] = [{**asdict(graph.nodes[n]), 'mode': graph.nodes[n].mode.value}
+                               for n in result['path']]
+            result['walk_primitives'] = [
+                [asdict(s) for s in current.paths.get((a, b),
+                 [current.pose(graph.nodes[a]), current.pose(graph.nodes[b])])]
+                for a, b in zip(result['path'], result['path'][1:])
+                if graph.nodes[a].mode == graph.nodes[b].mode == MotionMode.WALK]
+            counts, prices = {}, {}
+            for chain in result['walk_primitives']:
+                for first, second in zip(chain, chain[1:]):
+                    edge = current.motions.edge(PoseState(**first), PoseState(**second))
+                    counts[edge.motion] = counts.get(edge.motion, 0) + 1
+                    prices[edge.motion] = prices.get(edge.motion, 0.0) + edge.cost
+            result['walk_motion_counts'], result['walk_motion_costs'] = counts, prices
+            result['altitude_range'] = ([min(n['z'] for n in result['poses']),
+                                         max(n['z'] for n in result['poses'])]
+                                        if result['poses'] else None)
+        return {**job, 'status': 'success' if route else 'graph_no_path',
+                'construction_ms': (built - began) * 1000, 'nodes': len(graph.nodes),
+                'edges': sum(map(len, graph.edges.values())), 'reachable_nodes': len(reached),
+>               'reachable_goal': goal in reached, 'construction_stats': current.construction_stats,
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                'mode_counts': mode_counts,
+                'endpoint_outdegrees': [len(graph.edges[n]) for n in (source, goal)],
+                'verification_ms': verification_ms, 'heuristic_audit': heuristic_audit,
+                'reference_cost': reference_cost if reference_path else None,
+                'reference_verified': True,
+                'anchors_sha256': anchor_hash, 'graph_sha256': identity,
+                'transition_anchors': len(current.anchors.transitions), 'transitions': transitions,
+                'peak_rss_mib': peak_process_memory_mib(),
+                'baseline_high_water_mib': baseline, 'settings': settings, 'parameters': parameters,
+                'rss_growth_mib': peak_process_memory_mib() - baseline,
+                'searches': searches}
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\m4_global_planner\joint_representation_benchmark.py:148: AttributeError
+---------------------------- Captured stderr call -----------------------------
+construction
+verification
+dijkstra
+astar
+___________________ test_clearance_uses_inflated_box_bottom ___________________
+
+    def test_clearance_uses_inflated_box_bottom():
+        _, parameters, planning_map, _, _ = setup_scenario('T01_open_transition')
+        parameters['fly_validation'].update(translation_min_ground_clearance=.2, safety_margin=.1)
+        validator = FlyStateValidator(parameters)
+        air = Node(0, 2, 2, 1, MotionMode.FLY)
+>       assert not validator.is_edge_valid(Node(1, 2, 2, .25, MotionMode.FLY), air, planning_map)
+E       AssertionError: assert not True
+E        +  where True = is_edge_valid(Node(node_id=1, x=2, y=2, z=0.25, mode=<MotionMode.FLY: 'fly'>, yaw=None), Node(node_id=0, x=2, y=2, z=1, mode=<MotionMode.FLY: 'fly'>, yaw=None), <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3F017A70>)
+E        +    where is_edge_valid = <m4_global_planner.representation.fly_validator.FlyStateValidator object at 0x000001FE3F0173E0>.is_edge_valid
+E        +    and   Node(node_id=1, x=2, y=2, z=0.25, mode=<MotionMode.FLY: 'fly'>, yaw=None) = Node(1, 2, 2, 0.25, <MotionMode.FLY: 'fly'>)
+E        +      where <MotionMode.FLY: 'fly'> = MotionMode.FLY
+
+src\m4_global_planner\test\test_connectivity_followup.py:146: AssertionError
+________ test_fixture_labels_and_expected_values_do_not_change_graphs _________
+
+    def test_fixture_labels_and_expected_values_do_not_change_graphs():
+        case = deepcopy(DATA['joint_representation_pilot']['cases'][0])
+        job = {'case': case, 'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {
+            'walk_roadmap': {'attachment_chain_policy': 'edges', 'max_chain_attempts': 256}}}
+>       a = run(job)
+            ^^^^^^^^
+
+src\m4_global_planner\test\test_connectivity_general_rules.py:36: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+job = {'case': {'scenario': 'W07_narrow_valid_passage', 'parameters': {'spatial_resolution': 0.2}}, 'seed': 11, 'candidate': 'roadmap', 'planner_overrides': {'walk_roadmap': {'attachment_chain_policy': 'edges', 'max_chain_attempts': 256}}}
+
+    def run(job):
+        # Independent test-only loop, intentionally separate from production Dijkstra.
+        from test_graph_optimality import dijkstra_path
+    
+        data = load_scenario_data(default_scenario_path())
+        config = data['joint_representation_pilot']
+        case = job['case']
+        scenario = data['scenarios'][case['scenario']]
+        # Fixture map overrides are benchmark-only; no fixture labels reach builders.
+        if 'world_override' in case:
+            scenario = {'world': case['world_override']}
+        parameters = _merge_settings(get_scenario_parameters(data, case['scenario']),
+                                     config['shared_parameters'])
+        parameters = _merge_settings(parameters, case.get('parameters', {}))
+        parameters = _merge_settings(parameters, job.get('parameter_overrides', {}))
+        settings = _merge_settings(data['joint_planner'], {
+            'walk_approach': 'lattice' if job['candidate'] == 'lattice' else 'roadmap',
+            'fly_approach': 'adaptive_lattice' if job['candidate'] == 'lattice' else 'sparse_roadmap',
+            'walk_roadmap': config['walk_roadmap'],
+        })
+        settings = _merge_settings(settings, job.get('planner_overrides', {}))
+        settings = _merge_settings(settings, case.get('planner_overrides', {}))
+        request = case.get('request', data['walk_benchmark']['requests'].get(
+            case['scenario'], scenario))
+        endpoints = {}
+        for i, name in enumerate(('start', 'goal')):
+            record = request[name]
+            mode = MotionMode(record.get('mode', case.get('endpoint_mode', 'walk')))
+            endpoints[name] = Node(i, *record['position'], mode,
+                                   radians(record['heading_deg']) if mode == MotionMode.WALK else None)
+        planning_map = DummyPlanningMap(scenario)
+        walk, fly = WalkStateValidator(parameters), FlyStateValidator(parameters)
+        builder = MandatoryAnchorBuilder(parameters, walk, fly,
+                                         TransitionValidator(parameters, walk, fly))
+        baseline = peak_process_memory_mib()
+        print('construction', file=sys.stderr, flush=True)
+        began = perf_counter()
+        current = JointPlanner(parameters, settings, planning_map, builder, endpoints, job['seed'])
+        built = perf_counter()
+        graph = current.graph
+        if (len(graph.nodes) > config['max_joint_nodes']
+                or sum(map(len, graph.edges.values())) > config['max_joint_edges']):
+            raise BudgetExceeded('Joint graph resource budget exceeded')
+        identity = fingerprint(current)
+        anchor_hash = hashlib.sha256(repr(current.anchors).encode()).hexdigest()
+        source, goal = current.endpoints['start'], current.endpoints['goal']
+        print('verification', file=sys.stderr, flush=True)
+        verification_start = perf_counter()
+        heuristic_audit = verify_heuristic(graph, goal, current.scale, 1e-9)
+        reference_cost, reference_path = dijkstra_path(graph, source, goal)
+        if reference_path:
+            current.validate_route(reference_path, source, goal, reference_cost)
+        verification_ms = (perf_counter() - verification_start) * 1000
+        searches = []
+        for method in ('dijkstra', 'astar'):
+            print(method, file=sys.stderr, flush=True)
+            start = perf_counter()
+            if method == 'dijkstra':
+                result = dijkstra(graph, source, goal)
+            else:
+                result = astar(graph, source, goal, heuristic_scale=current.scale)
+            searched = perf_counter()
+            if result['success']:
+                current.validate_route(result['path'], source, goal, result['total_cost'])
+            audited = perf_counter()
+            assert fingerprint(current) == identity
+            searches.append({'method': method, 'success': result['success'],
+                             'cost': result['total_cost'] if result['success'] else None,
+                             'path': result['path'], 'search_ms': (searched - start) * 1000,
+                             'audit_ms': (audited - searched) * 1000,
+                             'explored': result.get('nodes_explored'),
+                             'pops': result['nodes_expanded'],
+                             'validated': True, 'executable': False})
+        assert bool(reference_path) == searches[0]['success']
+        if reference_path:
+            assert isclose(reference_cost, searches[0]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        assert searches[0]['success'] == searches[1]['success']
+        if searches[0]['success']:
+            assert isclose(searches[0]['cost'], searches[1]['cost'], rel_tol=1e-10, abs_tol=1e-9)
+        route = searches[0]['path']
+        transitions = [(graph.nodes[a].x, graph.nodes[a].y, graph.nodes[a].z,
+                        graph.nodes[a].mode.value, graph.nodes[b].mode.value)
+                       for a, b in zip(route, route[1:]) if graph.nodes[a].mode != graph.nodes[b].mode]
+        # Directed reachability supports failure diagnosis, independent of heuristic choice.
+        reached, frontier = {source}, [source]
+        while frontier:
+            node = frontier.pop()
+            for target in graph.edges[node]:
+                if target not in reached:
+                    reached.add(target)
+                    frontier.append(target)
+        mode_counts = {}
+        for mode in (MotionMode.WALK, MotionMode.FLY):
+            ids = {n.node_id for n in graph.nodes.values() if n.mode == mode}
+            mode_counts[mode.value] = {'nodes': len(ids), 'reachable': len(ids & reached),
+                                       'edges': sum(len(graph.edges[n]) for n in ids)}
+        for result in searches:
+            result['poses'] = [{**asdict(graph.nodes[n]), 'mode': graph.nodes[n].mode.value}
+                               for n in result['path']]
+            result['walk_primitives'] = [
+                [asdict(s) for s in current.paths.get((a, b),
+                 [current.pose(graph.nodes[a]), current.pose(graph.nodes[b])])]
+                for a, b in zip(result['path'], result['path'][1:])
+                if graph.nodes[a].mode == graph.nodes[b].mode == MotionMode.WALK]
+            counts, prices = {}, {}
+            for chain in result['walk_primitives']:
+                for first, second in zip(chain, chain[1:]):
+                    edge = current.motions.edge(PoseState(**first), PoseState(**second))
+                    counts[edge.motion] = counts.get(edge.motion, 0) + 1
+                    prices[edge.motion] = prices.get(edge.motion, 0.0) + edge.cost
+            result['walk_motion_counts'], result['walk_motion_costs'] = counts, prices
+            result['altitude_range'] = ([min(n['z'] for n in result['poses']),
+                                         max(n['z'] for n in result['poses'])]
+                                        if result['poses'] else None)
+        return {**job, 'status': 'success' if route else 'graph_no_path',
+                'construction_ms': (built - began) * 1000, 'nodes': len(graph.nodes),
+                'edges': sum(map(len, graph.edges.values())), 'reachable_nodes': len(reached),
+>               'reachable_goal': goal in reached, 'construction_stats': current.construction_stats,
+                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^
+                'mode_counts': mode_counts,
+                'endpoint_outdegrees': [len(graph.edges[n]) for n in (source, goal)],
+                'verification_ms': verification_ms, 'heuristic_audit': heuristic_audit,
+                'reference_cost': reference_cost if reference_path else None,
+                'reference_verified': True,
+                'anchors_sha256': anchor_hash, 'graph_sha256': identity,
+                'transition_anchors': len(current.anchors.transitions), 'transitions': transitions,
+                'peak_rss_mib': peak_process_memory_mib(),
+                'baseline_high_water_mib': baseline, 'settings': settings, 'parameters': parameters,
+                'rss_growth_mib': peak_process_memory_mib() - baseline,
+                'searches': searches}
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\m4_global_planner\joint_representation_benchmark.py:148: AttributeError
+---------------------------- Captured stderr call -----------------------------
+construction
+verification
+dijkstra
+astar
+_ test_adaptive_graph_caches_success_and_failure_across_fallback_levels[True] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE3FC8BB60>
+succeeds = True
+
+    @pytest.mark.parametrize('succeeds', [True, False])
+    def test_adaptive_graph_caches_success_and_failure_across_fallback_levels(
+            monkeypatch, succeeds):
+        import m4_global_planner.representation.hybrid_walk as hybrid_walk
+    
+        graph = LazyHybridWalkGraph(
+            {}, {}, None,
+            {0: PoseState(0, 0, 0, 0), 1: PoseState(1, 0, 0, 0),
+             2: PoseState(2, 0, 0, 0)},
+            {}, 11, (1, 2), 10,
+        )
+        for node_id, pose in graph.poses.items():
+            graph.add_node(Node(
+                node_id, pose.x, pose.y, pose.z, MotionMode.WALK, pose.heading,
+            ))
+        graph.candidates = {0: [1, 2], 1: [], 2: []}
+        graph.update_construction_stats()
+    
+        def connection(parameters, settings, planning_map, start, goal, seed):
+            return {
+                'connection_exists': succeeds,
+                'route': [start, goal] if succeeds else [],
+                'walk_cost': 1.0 if succeeds else None,
+                'metadata': {'expanded': 2, 'planning_ms': 3.0, 'total_ms': 4.0},
+            }
+    
+        connector = Mock(side_effect=connection)
+        monkeypatch.setattr(hybrid_walk, 'connect_walk', connector)
+    
+>       first = graph.get_neighbors(0)
+                ^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_hybrid_efficiency.py:40: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.hybrid_walk.LazyHybridWalkGraph object at 0x000001FE3FC8B6E0>
+node_id = 0
+
+    def get_neighbors(self, node_id):
+        if self._current_map_token() != self._map_token:
+            self._invalidate_cached_connections()
+        super().get_neighbors(node_id)
+        source_pose = self.poses.get(node_id)
+        if source_pose is None:
+            return Graph.get_neighbors(self, node_id)
+        neighbor_limit = self.levels[self.level_index]
+        targets = self.candidates[node_id][:neighbor_limit]
+        for target_id in targets:
+            key = node_id, target_id
+            if key in self.cache:
+                self.cache_hits += 1
+                connection = self.cache[key]
+            else:
+                if self.cache_misses >= self.max_attempts:
+                    raise RuntimeError('Hybrid WALK connection attempt budget exceeded')
+                self.cache_misses += 1
+                began = perf_counter()
+                connection = connect_walk(
+                    self.parameters, self.settings, self.planning_map,
+                    source_pose, self.poses[target_id], self.seed,
+                )
+                self.connection_times_ms.append((perf_counter() - began) * 1000)
+                self.local_expansions += connection['metadata']['expanded']
+                self.connector_planning_ms += connection['metadata']['planning_ms']
+                self.connector_total_ms += connection['metadata']['total_ms']
+                self.cache[key] = connection
+                if connection['connection_exists']:
+                    self.successful_connections += 1
+                else:
+                    self.failed_connections += 1
+            if connection['connection_exists'] and target_id not in self.edges[node_id]:
+>               self.add_edge(Edge(
+                    node_id, target_id, connection['walk_cost'], 'WALK',
+                ))
+E               TypeError: Edge.__init__() takes 4 positional arguments but 5 were given
+
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:254: TypeError
+____ test_lazy_graph_invalidates_materialized_connections_after_map_change ____
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x000001FE3FC44F50>
+
+    def test_lazy_graph_invalidates_materialized_connections_after_map_change(monkeypatch):
+        import m4_global_planner.representation.hybrid_walk as hybrid_walk
+    
+        old_map = object()
+        new_map = type('RevisionedMap', (), {'revision': 0})()
+        graph = LazyHybridWalkGraph(
+            {}, {}, old_map,
+            {0: PoseState(0, 0, 0, 0), 1: PoseState(1, 0, 0, 0)},
+            {}, 11, (1,), 10,
+        )
+        for node_id, pose in graph.poses.items():
+            graph.add_node(Node(
+                node_id, pose.x, pose.y, pose.z, MotionMode.WALK, pose.heading,
+            ))
+        graph.candidates = {0: [1], 1: []}
+        connector = Mock(return_value={
+            'connection_exists': True, 'route': [graph.poses[0], graph.poses[1]],
+            'walk_cost': 1.0,
+            'metadata': {'expanded': 1, 'planning_ms': 1.0, 'total_ms': 1.0},
+        })
+        monkeypatch.setattr(hybrid_walk, 'connect_walk', connector)
+    
+>       graph.get_neighbors(0)
+
+src\m4_global_planner\test\test_hybrid_efficiency.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.hybrid_walk.LazyHybridWalkGraph object at 0x000001FE3FC44350>
+node_id = 0
+
+    def get_neighbors(self, node_id):
+        if self._current_map_token() != self._map_token:
+            self._invalidate_cached_connections()
+        super().get_neighbors(node_id)
+        source_pose = self.poses.get(node_id)
+        if source_pose is None:
+            return Graph.get_neighbors(self, node_id)
+        neighbor_limit = self.levels[self.level_index]
+        targets = self.candidates[node_id][:neighbor_limit]
+        for target_id in targets:
+            key = node_id, target_id
+            if key in self.cache:
+                self.cache_hits += 1
+                connection = self.cache[key]
+            else:
+                if self.cache_misses >= self.max_attempts:
+                    raise RuntimeError('Hybrid WALK connection attempt budget exceeded')
+                self.cache_misses += 1
+                began = perf_counter()
+                connection = connect_walk(
+                    self.parameters, self.settings, self.planning_map,
+                    source_pose, self.poses[target_id], self.seed,
+                )
+                self.connection_times_ms.append((perf_counter() - began) * 1000)
+                self.local_expansions += connection['metadata']['expanded']
+                self.connector_planning_ms += connection['metadata']['planning_ms']
+                self.connector_total_ms += connection['metadata']['total_ms']
+                self.cache[key] = connection
+                if connection['connection_exists']:
+                    self.successful_connections += 1
+                else:
+                    self.failed_connections += 1
+            if connection['connection_exists'] and target_id not in self.edges[node_id]:
+>               self.add_edge(Edge(
+                    node_id, target_id, connection['walk_cost'], 'WALK',
+                ))
+E               TypeError: Edge.__init__() takes 4 positional arguments but 5 were given
+
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:254: TypeError
+_______ test_roadmap_is_deterministic_and_budget_failures_are_explicit ________
+
+    def test_roadmap_is_deterministic_and_budget_failures_are_explicit():
+        a = prepared('T01_open_transition', approach='sparse_roadmap', search_settings=settings())
+        b = prepared('T01_open_transition', approach='sparse_roadmap', search_settings=settings())
+        assert a.graph.nodes == b.graph.nodes and a.graph.edges == b.graph.edges
+        limited = settings()
+        limited['walk_roadmap']['max_nodes'] = 1
+>       with pytest.raises(BudgetExceeded, match='node budget'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE BudgetExceeded
+
+src\m4_global_planner\test\test_joint_roadmap.py:90: Failed
+________ test_sampled_roadmap_turn_room_miss_against_lattice_reference ________
+
+    def test_sampled_roadmap_turn_room_miss_against_lattice_reference():
+>       lattice = turn_room_planner('lattice')
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_joint_roadmap.py:122: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\test\test_joint_roadmap.py:57: in turn_room_planner
+    return JointPlanner(parameters, planner_settings, planning_map, builder, endpoints, seed=11)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\m4_global_planner\m4_global_planner\representation\joint_graph.py:55: in __init__
+    fly, mapping, _ = build_fly_graph(
+src\m4_global_planner\m4_global_planner\representation\fly_graph.py:158: in build_graph
+    for xyz in points:
+               ^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+planning_map = <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3FC60C50>
+validator = <m4_global_planner.representation.fly_validator.FlyStateValidator object at 0x000001FE3FC63D40>
+settings = {'coarse_resolution': 2.0, 'fine_resolution': 0.5, 'samples': 256, 'max_sample_attempts': 30000}
+seed = 11
+
+    def roadmap_points(planning_map, validator, settings, seed):
+        count = positive(settings, 'samples', True)
+        attempts = positive(settings, 'max_sample_attempts', True)
+        if count > attempts:
+            raise ValueError('Sample attempt budget is smaller than sample count')
+        lower, upper = usable_bounds(planning_map, validator)
+        random = Random(seed)
+        accepted = 0
+        for _ in range(attempts):
+            xyz = tuple(random.uniform(a, b) for a, b in zip(lower, upper))
+            if validator.is_valid(Node(0, *xyz, MotionMode.FLY), planning_map):
+                yield xyz
+                accepted += 1
+                if accepted == count:
+                    return
+>       raise BudgetExceeded('Roadmap sample attempt budget exhausted')
+E       m4_global_planner.representation.fly_graph.BudgetExceeded: Roadmap sample attempt budget exhausted
+
+src\m4_global_planner\m4_global_planner\representation\fly_graph.py:95: BudgetExceeded
+______ test_multi_resolution_matches_anchor_bound_and_audits_route[open] ______
+
+variant = 'open'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3FD16840>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3FD16AB0>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=2.4, y=1.2, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+____ test_multi_resolution_matches_anchor_bound_and_audits_route[off_grid] ____
+
+variant = 'off_grid'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3F0AA8D0>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0A90D0>
+start = PoseState(x=0.9, y=0.9, z=0, heading=0.1)
+goal = PoseState(x=2.3, y=1.1, z=0, heading=0.2)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+____ test_multi_resolution_matches_anchor_bound_and_audits_route[terrain] _____
+
+variant = 'terrain'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3F0A9D00>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0A9190>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=2.4, y=1.2, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+____ test_multi_resolution_matches_anchor_bound_and_audits_route[blocked] _____
+
+variant = 'blocked'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3FCD57F0>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0AA360>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=2.4, y=1.2, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+_ test_multi_resolution_matches_anchor_bound_and_audits_route[missing_ground] _
+
+variant = 'missing_ground'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3FCD5C10>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3FCD7EC0>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=2.4, y=1.2, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+____ test_multi_resolution_matches_anchor_bound_and_audits_route[no_pivot] ____
+
+variant = 'no_pivot'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3F0A8F20>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0AA780>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=2.4, y=1.2, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+___ test_multi_resolution_matches_anchor_bound_and_audits_route[same_pose] ____
+
+variant = 'same_pose'
+
+    @pytest.mark.parametrize('variant', ['open', 'off_grid', 'terrain', 'blocked',
+                                        'missing_ground', 'no_pivot', 'same_pose'])
+    def test_multi_resolution_matches_anchor_bound_and_audits_route(variant):
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters.update(spatial_resolution=0.4, heading_resolution_deg=90,
+                          walk_terrain_cost_mode='distance_density')
+        scenario['world']['bounds'] = [0, 3.2, 0, 2.4, 0, 3]
+        start, goal = PoseState(0.8, 0.8, 0, 0), PoseState(2.4, 1.2, 0, 0)
+        if variant == 'off_grid':
+            start, goal = PoseState(0.9, 0.9, 0, 0.1), PoseState(2.3, 1.1, 0, 0.2)
+        elif variant == 'terrain':
+            scenario['world']['walk_cost_regions'] = [
+                {'min': [1.1, 0], 'max': [1.7, 2.4], 'cost': 1.3}]
+        elif variant == 'blocked':
+            scenario['world']['obstacles_3d'] = [
+                {'min': [1.5, 0, 0], 'max': [1.7, 2.4, 3]}]
+        elif variant == 'missing_ground':
+            scenario['world']['ground']['missing_regions'] = [
+                {'min': [1.4, 0], 'max': [1.6, 2.4]}]
+        elif variant == 'no_pivot':
+            parameters['pivot_allowed'] = False
+        elif variant == 'same_pose':
+            goal = start
+        settings = DATA['walk_benchmark']
+        motions = Motions(parameters, planning_map)
+>       spaces = make_spaces(parameters, settings, motions, start, goal, [0.4, 0.8])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:61: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3F0A9BB0>
+parameters = {'test_only': True, 'spatial_resolution': 0.4, 'heading_resolution_deg': 90, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0A81A0>
+start = PoseState(x=0.8, y=0.8, z=0, heading=0)
+goal = PoseState(x=0.8, y=0.8, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+_____ test_decimal_spaces_share_anchor_coordinates_without_rounding_pose ______
+
+    def test_decimal_spaces_share_anchor_coordinates_without_rounding_pose():
+        _, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+>       spaces = make_spaces(parameters, DATA['walk_benchmark'], Motions(parameters, planning_map),
+                             PoseState(1, 1, 0, 0), PoseState(2, 1, 0, 0), [0.2, 0.4, 0.8])
+
+src\m4_global_planner\test\test_multi_resolution.py:77: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3FCD7080>
+parameters = {'test_only': True, 'spatial_resolution': 0.2, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3FCD4410>
+start = PoseState(x=1, y=1, z=0, heading=0)
+goal = PoseState(x=2, y=1, z=0, heading=0)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+_____________ test_expansion_limit_endpoints_and_changed_snapshot _____________
+
+    def test_expansion_limit_endpoints_and_changed_snapshot():
+        scenario, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        start, goal = pose(scenario['from']), pose(scenario['to'])
+        settings = deepcopy(DATA['walk_benchmark'])
+        settings['max_expansions'] = 1
+>       assert plan(parameters, settings, planning_map, start, PoseState(2, 1, 0, pi),
+                    [0.25, 0.5])['status'] == 'expansion_limit'
+
+src\m4_global_planner\test\test_multi_resolution.py:100: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:171: in plan
+    spaces = make_spaces(parameters, settings, motions, start, goal, resolutions)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3FCD52E0>
+parameters = {'test_only': True, 'spatial_resolution': 0.25, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3FCD76E0>
+start = PoseState(x=1.0, y=1.0, z=0.0, heading=0.0)
+goal = PoseState(x=2, y=1, z=0, heading=3.141592653589793)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+_________ test_missing_heading_is_not_repaired_by_position_resolution _________
+
+    def test_missing_heading_is_not_repaired_by_position_resolution():
+        _, parameters, planning_map, _, _ = setup_scenario('W01_forward')
+        parameters['pivot_allowed'] = False
+        start, goal = PoseState(1, 1, 0, pi / 7), PoseState(2, 1.5, 0, pi / 7)
+>       result = plan(parameters, DATA['walk_benchmark'], planning_map, start, goal, [0.25, 0.5])
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_multi_resolution.py:129: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:171: in plan
+    spaces = make_spaces(parameters, settings, motions, start, goal, resolutions)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src\m4_global_planner\m4_global_planner\representation\multi_resolution.py:140: in make_spaces
+    space = OnDemandWalkLattice(config, settings, motions, start, goal)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <m4_global_planner.representation.walk_planning.OnDemandWalkLattice object at 0x000001FE3F0A84A0>
+parameters = {'test_only': True, 'spatial_resolution': 0.25, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+motions = <m4_global_planner.representation.walk_planning.Motions object at 0x000001FE3F0AB680>
+start = PoseState(x=1, y=1, z=0, heading=0.4487989505128276)
+goal = PoseState(x=2, y=1.5, z=0, heading=0.4487989505128276)
+
+    def __init__(self, parameters, settings, motions, start, goal):
+        parameters = _lattice_parameters(parameters, motions.map)
+        self.motions, self.start, self.goal = motions, start, goal
+        self.radius = settings['endpoint_radius']
+        generator = StateLatticeGenerator(parameters['spatial_resolution'],
+                                          parameters['heading_resolution_deg'])
+        self.headings = generator.generate_headings()
+        self.neighbors = WalkMotionNeighbors(parameters)
+        xmin, xmax, ymin, ymax = motions.map.get_bounds()
+        self.origin = xmin, ymin
+>       self.xs = generator.coordinates(xmin, xmax)
+                  ^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'StateLatticeGenerator' object has no attribute 'coordinates'
+
+src\m4_global_planner\m4_global_planner\representation\walk_planning.py:234: AttributeError
+___ test_generated_multimodal_acceptance_graph_has_required_route_and_edges ___
+
+acceptance_graph = (<m4_global_planner.representation.joint_graph.JointPlanner object at 0x000001FE3FCD72C0>, <m4_global_planner.represen...0x000001FE3FCD7860>, <m4_global_planner.representation.fly_validator.TransitionValidator object at 0x000001FE3FCD54C0>)
+
+    def test_generated_multimodal_acceptance_graph_has_required_route_and_edges(
+            acceptance_graph):
+        planner, _, transition_validator = acceptance_graph
+        result = planner.plan()
+        graph = planner.graph
+        anchors = planner.anchors
+        assert anchors is not None
+        start, goal = planner.endpoints['start'], planner.endpoints['goal']
+    
+        assert result['success']
+        route = result['path']
+        route_edges = [
+            graph.edges[source][target]
+            for source, target in zip(route, route[1:])
+        ]
+>       route_types = [edge.edge_type.value for edge in route_edges]
+                       ^^^^^^^^^^^^^^
+E       AttributeError: 'Edge' object has no attribute 'edge_type'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:112: AttributeError
+_____________ test_invalid_walk_and_flight_connections_are_absent _____________
+
+acceptance_graph = (<m4_global_planner.representation.joint_graph.JointPlanner object at 0x000001FE3FCD72C0>, <m4_global_planner.represen...0x000001FE3FCD7860>, <m4_global_planner.representation.fly_validator.TransitionValidator object at 0x000001FE3FCD54C0>)
+
+    def test_invalid_walk_and_flight_connections_are_absent(acceptance_graph):
+        planner, builder, _ = acceptance_graph
+        graph = planner.graph
+        walk_ids = [node_id for node_id, node in graph.nodes.items()
+                    if node.mode == MotionMode.WALK]
+        fly_ids = [node_id for node_id, node in graph.nodes.items()
+                   if node.mode == MotionMode.FLY]
+        walk_positions = {
+            (graph.nodes[node_id].x, graph.nodes[node_id].y) for node_id in walk_ids
+        }
+        assert planner.settings['fly_graph']['max_neighbors'] >= len(fly_ids)
+        assert walk_positions
+        assert all(graph.nodes[node_id].yaw is not None for node_id in walk_ids)
+        for source in walk_ids:
+            for target, edge in graph.edges[source].items():
+                if graph.nodes[target].mode != MotionMode.WALK:
+                    continue
+>               assert edge.edge_type.value == 'WALK' and edge.valid
+                       ^^^^^^^^^^^^^^
+E               AttributeError: 'Edge' object has no attribute 'edge_type'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:213: AttributeError
+_______________ test_hybrid_connector_stats_cover_bounded_build _______________
+
+acceptance_graph = (<m4_global_planner.representation.joint_graph.JointPlanner object at 0x000001FE3FCD72C0>, <m4_global_planner.represen...0x000001FE3FCD7860>, <m4_global_planner.representation.fly_validator.TransitionValidator object at 0x000001FE3FCD54C0>)
+
+    def test_hybrid_connector_stats_cover_bounded_build(acceptance_graph):
+        planner, _, _ = acceptance_graph
+>       stats = planner.construction_stats['hybrid_walk']
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:289: AttributeError
+_ test_motion_primitive_lattice_passes_multimodal_acceptance_without_changing_fly _
+
+    def test_motion_primitive_lattice_passes_multimodal_acceptance_without_changing_fly():
+        baseline, _, _ = build_acceptance_graph('lattice')
+        candidate, _, _ = build_acceptance_graph(
+            'motion_primitive_lattice',
+        )
+        result = candidate.plan()
+        assert result['success']
+        route = result['path']
+        route_edges = [
+            candidate.graph.edges[source][target]
+            for source, target in zip(route, route[1:])
+        ]
+>       kinds = [edge.edge_type.value for edge in route_edges]
+                 ^^^^^^^^^^^^^^
+E       AttributeError: 'Edge' object has no attribute 'edge_type'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:326: AttributeError
+_ test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work[lazy_hybrid] _
+
+approach = 'lazy_hybrid'
+
+    @pytest.mark.parametrize('approach', ['lazy_hybrid', 'adaptive_hybrid'])
+    def test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work(approach):
+        planner, _, _ = build_acceptance_graph(approach)
+        result = planner.plan()
+>       stats = planner.construction_stats['hybrid_walk']
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:388: AttributeError
+_ test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work[adaptive_hybrid] _
+
+approach = 'adaptive_hybrid'
+
+    @pytest.mark.parametrize('approach', ['lazy_hybrid', 'adaptive_hybrid'])
+    def test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work(approach):
+        planner, _, _ = build_acceptance_graph(approach)
+        result = planner.plan()
+>       stats = planner.construction_stats['hybrid_walk']
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       AttributeError: 'JointPlanner' object has no attribute 'construction_stats'
+
+src\m4_global_planner\test\test_multimodal_acceptance_graph.py:388: AttributeError
+__________________ test_benchmark_snapshot_and_route_audits ___________________
+
+tmp_path = WindowsPath('C:/Users/samat/.codex/.chatgpt-projects/g-p-6a88008b63f48191ba3fd7cef936102d/output/supplied_graph/full_tmp/test_benchmark_snapshot_and_ro0')
+
+    def test_benchmark_snapshot_and_route_audits(tmp_path):
+        case = DATA['joint_search_benchmark']['cases'][5]
+        snapshot = tmp_path / 'graph.pickle'
+>       metadata = prepare(DATA, case, snapshot)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+src\m4_global_planner\test\test_search_comparison.py:69: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+data = {'version': 1, 'meta': {'name': 'm4_global_planner_test_scenarios', 'purpose': 'Shared dummy data used to test node ge...repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}, ...}
+case = {'name': 'T05', 'scenario': 'T05_flight_bridge', 'expected': 'success'}
+snapshot = WindowsPath('C:/Users/samat/.codex/.chatgpt-projects/g-p-6a88008b63f48191ba3fd7cef936102d/output/supplied_graph/full_tmp/test_benchmark_snapshot_and_ro0/graph.pickle')
+
+    def prepare(data, case, snapshot):
+        settings = data['joint_search_benchmark']
+        parameters = _merge_settings(get_scenario_parameters(data, case['scenario']),
+                                     case.get('parameter_overrides', {}))
+        tuning = _merge_settings(data['joint_planner'], case.get('planner_overrides', {}))
+        parameters['walk_terrain_cost_mode'] = tuning['walk_terrain_cost_mode']
+        world = data['scenarios'][case['scenario']]
+        request = settings['requests'].get(case['scenario'], world)
+        endpoints = {}
+        for i, key in enumerate(('start', 'goal')):
+            record = request[key]
+            mode = MotionMode(record.get('mode', 'walk'))
+            yaw = radians(record['heading_deg']) if mode == MotionMode.WALK else None
+            endpoints[key] = Node(i, *record['position'], mode, yaw)
+        walk, fly = WalkStateValidator(parameters), FlyStateValidator(parameters)
+        builder = MandatoryAnchorBuilder(parameters, walk, fly,
+                                         TransitionValidator(parameters, walk, fly))
+        start = perf_counter()
+        planner = JointPlanner(parameters, tuning, DummyPlanningMap(world), builder, endpoints,
+                               settings['seed'])
+        construction_ms = (perf_counter() - start) * 1000
+>       construction_peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+                            ^^^^^^^^^^^^^^^^^^
+E       AttributeError: module 'resource' has no attribute 'getrusage'
+
+src\m4_global_planner\m4_global_planner\joint_search_benchmark.py:74: AttributeError
+____________________ test_invalid_spatial_resolution[nan] _____________________
+
+resolution = nan
+
+    @pytest.mark.parametrize('resolution', [float('nan'), float('inf'), -float('inf'), 0, -1])
+    def test_invalid_spatial_resolution(resolution):
+>       with pytest.raises(ValueError, match='Spatial resolution'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_state_lattice.py:16: Failed
+____________________ test_invalid_spatial_resolution[inf] _____________________
+
+resolution = inf
+
+    @pytest.mark.parametrize('resolution', [float('nan'), float('inf'), -float('inf'), 0, -1])
+    def test_invalid_spatial_resolution(resolution):
+>       with pytest.raises(ValueError, match='Spatial resolution'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_state_lattice.py:16: Failed
+____________________ test_invalid_heading_resolution[nan] _____________________
+
+resolution = nan
+
+    @pytest.mark.parametrize('resolution', [float('nan'), float('inf'), -float('inf'), 0, -1, 361])
+    def test_invalid_heading_resolution(resolution):
+>       with pytest.raises(ValueError, match='Heading resolution'):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_state_lattice.py:22: Failed
+_ test_cost_terms_are_separate_and_upstream_terrain_is_counted_once[0-forward] _
+
+heading = 0, motion = 'forward'
+
+    @pytest.mark.parametrize('heading,motion', [(0, 'forward'), (pi, 'reverse')])
+    def test_cost_terms_are_separate_and_upstream_terrain_is_counted_once(heading, motion):
+        parameters, planning_map, edges = setup_contract()
+        edge = edges.generate_edge(PoseState(1, 2, 0, heading), PoseState(3, 2, 0, heading), planning_map)
+>       assert edge is not None and edge.motion == motion
+E       assert (None is not None)
+
+src\m4_global_planner\test\test_walk_contract.py:33: AssertionError
+_ test_cost_terms_are_separate_and_upstream_terrain_is_counted_once[3.141592653589793-reverse] _
+
+heading = 3.141592653589793, motion = 'reverse'
+
+    @pytest.mark.parametrize('heading,motion', [(0, 'forward'), (pi, 'reverse')])
+    def test_cost_terms_are_separate_and_upstream_terrain_is_counted_once(heading, motion):
+        parameters, planning_map, edges = setup_contract()
+        edge = edges.generate_edge(PoseState(1, 2, 0, heading), PoseState(3, 2, 0, heading), planning_map)
+>       assert edge is not None and edge.motion == motion
+E       assert (None is not None)
+
+src\m4_global_planner\test\test_walk_contract.py:33: AssertionError
+____________ test_pivot_has_its_own_cost_and_no_distance_exposure _____________
+
+    def test_pivot_has_its_own_cost_and_no_distance_exposure():
+        parameters, planning_map, edges = setup_contract()
+        edge = edges.generate_edge(PoseState(2, 2, 0, 0), PoseState(2, 2, 0, pi / 4), planning_map)
+>       assert edge is not None
+E       assert None is not None
+
+src\m4_global_planner\test\test_walk_contract.py:45: AssertionError
+_____ test_bad_surface_parameters_fail_before_planning[-1-max_slope_deg] ______
+
+key = 'max_slope_deg', value = -1
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_______ test_bad_surface_parameters_fail_before_planning[-1-max_step_m] _______
+
+key = 'max_step_m', value = -1
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_______ test_bad_surface_parameters_fail_before_planning[-1-max_gap_m] ________
+
+key = 'max_gap_m', value = -1
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[-1-min_clearance_m] _____
+
+key = 'min_clearance_m', value = -1
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[-1-unknown_penalty] _____
+
+key = 'unknown_penalty', value = -1
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_____ test_bad_surface_parameters_fail_before_planning[nan-max_slope_deg] _____
+
+key = 'max_slope_deg', value = nan
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+______ test_bad_surface_parameters_fail_before_planning[nan-max_step_m] _______
+
+key = 'max_step_m', value = nan
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_______ test_bad_surface_parameters_fail_before_planning[nan-max_gap_m] _______
+
+key = 'max_gap_m', value = nan
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[nan-min_clearance_m] ____
+
+key = 'min_clearance_m', value = nan
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[nan-unknown_penalty] ____
+
+key = 'unknown_penalty', value = nan
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_____ test_bad_surface_parameters_fail_before_planning[inf-max_slope_deg] _____
+
+key = 'max_slope_deg', value = inf
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+______ test_bad_surface_parameters_fail_before_planning[inf-max_step_m] _______
+
+key = 'max_step_m', value = inf
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+_______ test_bad_surface_parameters_fail_before_planning[inf-max_gap_m] _______
+
+key = 'max_gap_m', value = inf
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[inf-min_clearance_m] ____
+
+key = 'min_clearance_m', value = inf
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_bad_surface_parameters_fail_before_planning[inf-unknown_penalty] ____
+
+key = 'unknown_penalty', value = inf
+
+    @pytest.mark.parametrize('key', ['max_slope_deg', 'max_step_m', 'max_gap_m',
+                                    'min_clearance_m', 'unknown_penalty'])
+    @pytest.mark.parametrize('value', [-1, float('nan'), float('inf')])
+    def test_bad_surface_parameters_fail_before_planning(key, value):
+        parameters, _, _ = setup_contract()
+        parameters['walk_surface'][key] = value
+>       with pytest.raises(ValueError):
+             ^^^^^^^^^^^^^^^^^^^^^^^^^
+E       Failed: DID NOT RAISE ValueError
+
+src\m4_global_planner\test\test_walk_contract.py:57: Failed
+____ test_real_connector_cache_success_failure_and_cost_updates[revision] _____
+
+change = 'revision'
+
+    @pytest.mark.parametrize('change', ['revision', 'replace', 'explicit'])
+    def test_real_connector_cache_success_failure_and_cost_updates(change):
+        parameters, planning_map, _ = setup_contract()
+        planning_map.world['unknown_regions'] = []
+        settings = deepcopy(DATA['joint_planner'])
+        start, goal = PoseState(1, 2, 0, 0), PoseState(3, 2, 0, 0)
+        graph, _, ids, paths, cache = build_lazy_hybrid_walk_graph(
+            parameters, settings, planning_map, [start, goal], endpoint_pairs=[(start, goal)],
+        )
+        source, target = ids[start], ids[goal]
+>       graph.get_neighbors(source)
+
+src\m4_global_planner\test\test_walk_contract.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:240: in get_neighbors
+    connection = connect_walk(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+parameters = {'test_only': True, 'spatial_resolution': 0.5, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+planning_map = <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3F04F9B0>
+start = PoseState(x=1, y=2, z=0, heading=0)
+goal = PoseState(x=3, y=2, z=0, heading=0), seed = 0
+
+    def connect_walk(parameters, settings, planning_map, start, goal, seed=0):
+        """Connect two exact WALK poses with the existing audited Hybrid planner."""
+        result = walk_plan('hybrid', parameters, settings, planning_map, start, goal,
+                           seed=seed)
+        route = result.get('route', [])
+        metadata = {
+            'status': result['status'],
+            'expanded': result['expanded'],
+            'discovered': result['discovered'],
+            'work_edges': result.get('work_edges', 0),
+            'planning_ms': result.get('planning_ms', 0.0),
+            'total_ms': result.get('total_ms', 0.0),
+            'validation_calls': result.get('validation_calls', 0),
+        }
+        if result.get('rejected_route'):
+            raise ValueError('Hybrid WALK route failed its internal motion audit')
+        if not result['success']:
+            return {
+                'connection_exists': False,
+                'route': [],
+                'walk_cost': None,
+                'cost_breakdown': None,
+                'motions': [],
+                'metadata': metadata,
+            }
+        if not route or route[0] != start or route[-1] != goal:
+            raise ValueError('Hybrid WALK connector returned incorrect endpoints')
+    
+        motions = Motions(parameters, planning_map)
+        cost = 0.0
+        breakdown = dict.fromkeys(('distance', 'terrain', 'reverse', 'turn_pivot', 'unknown'), 0.0)
+        segments = []
+        for first, second in zip(route, route[1:]):
+            if (
+                (first.x, first.y, first.z) == (second.x, second.y, second.z)
+                and abs(angle(first.heading - second.heading))
+                <= motions.edges.validator.straight.heading_tolerance
+            ):
+                continue
+            edge = motions.edge(first, second)
+            if edge is None:
+                raise ValueError('Hybrid WALK connector returned invalid motion')
+            cost += edge.cost
+            segments.append(edge)
+>           for name, value in edge.cost_breakdown.items():
+                               ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'StraightWalkEdge' object has no attribute 'cost_breakdown'
+
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:59: AttributeError
+_____ test_real_connector_cache_success_failure_and_cost_updates[replace] _____
+
+change = 'replace'
+
+    @pytest.mark.parametrize('change', ['revision', 'replace', 'explicit'])
+    def test_real_connector_cache_success_failure_and_cost_updates(change):
+        parameters, planning_map, _ = setup_contract()
+        planning_map.world['unknown_regions'] = []
+        settings = deepcopy(DATA['joint_planner'])
+        start, goal = PoseState(1, 2, 0, 0), PoseState(3, 2, 0, 0)
+        graph, _, ids, paths, cache = build_lazy_hybrid_walk_graph(
+            parameters, settings, planning_map, [start, goal], endpoint_pairs=[(start, goal)],
+        )
+        source, target = ids[start], ids[goal]
+>       graph.get_neighbors(source)
+
+src\m4_global_planner\test\test_walk_contract.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:240: in get_neighbors
+    connection = connect_walk(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+parameters = {'test_only': True, 'spatial_resolution': 0.5, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+planning_map = <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3F09C050>
+start = PoseState(x=1, y=2, z=0, heading=0)
+goal = PoseState(x=3, y=2, z=0, heading=0), seed = 0
+
+    def connect_walk(parameters, settings, planning_map, start, goal, seed=0):
+        """Connect two exact WALK poses with the existing audited Hybrid planner."""
+        result = walk_plan('hybrid', parameters, settings, planning_map, start, goal,
+                           seed=seed)
+        route = result.get('route', [])
+        metadata = {
+            'status': result['status'],
+            'expanded': result['expanded'],
+            'discovered': result['discovered'],
+            'work_edges': result.get('work_edges', 0),
+            'planning_ms': result.get('planning_ms', 0.0),
+            'total_ms': result.get('total_ms', 0.0),
+            'validation_calls': result.get('validation_calls', 0),
+        }
+        if result.get('rejected_route'):
+            raise ValueError('Hybrid WALK route failed its internal motion audit')
+        if not result['success']:
+            return {
+                'connection_exists': False,
+                'route': [],
+                'walk_cost': None,
+                'cost_breakdown': None,
+                'motions': [],
+                'metadata': metadata,
+            }
+        if not route or route[0] != start or route[-1] != goal:
+            raise ValueError('Hybrid WALK connector returned incorrect endpoints')
+    
+        motions = Motions(parameters, planning_map)
+        cost = 0.0
+        breakdown = dict.fromkeys(('distance', 'terrain', 'reverse', 'turn_pivot', 'unknown'), 0.0)
+        segments = []
+        for first, second in zip(route, route[1:]):
+            if (
+                (first.x, first.y, first.z) == (second.x, second.y, second.z)
+                and abs(angle(first.heading - second.heading))
+                <= motions.edges.validator.straight.heading_tolerance
+            ):
+                continue
+            edge = motions.edge(first, second)
+            if edge is None:
+                raise ValueError('Hybrid WALK connector returned invalid motion')
+            cost += edge.cost
+            segments.append(edge)
+>           for name, value in edge.cost_breakdown.items():
+                               ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'StraightWalkEdge' object has no attribute 'cost_breakdown'
+
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:59: AttributeError
+____ test_real_connector_cache_success_failure_and_cost_updates[explicit] _____
+
+change = 'explicit'
+
+    @pytest.mark.parametrize('change', ['revision', 'replace', 'explicit'])
+    def test_real_connector_cache_success_failure_and_cost_updates(change):
+        parameters, planning_map, _ = setup_contract()
+        planning_map.world['unknown_regions'] = []
+        settings = deepcopy(DATA['joint_planner'])
+        start, goal = PoseState(1, 2, 0, 0), PoseState(3, 2, 0, 0)
+        graph, _, ids, paths, cache = build_lazy_hybrid_walk_graph(
+            parameters, settings, planning_map, [start, goal], endpoint_pairs=[(start, goal)],
+        )
+        source, target = ids[start], ids[goal]
+>       graph.get_neighbors(source)
+
+src\m4_global_planner\test\test_walk_contract.py:71: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:240: in get_neighbors
+    connection = connect_walk(
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+parameters = {'test_only': True, 'spatial_resolution': 0.5, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...}
+settings = {'repeats': 3, 'roadmap_seeds': [11, 29, 47], 'timeout_seconds': 180, 'terrain_cost_mode': 'distance_density', ...}
+planning_map = <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3FC172F0>
+start = PoseState(x=1, y=2, z=0, heading=0)
+goal = PoseState(x=3, y=2, z=0, heading=0), seed = 0
+
+    def connect_walk(parameters, settings, planning_map, start, goal, seed=0):
+        """Connect two exact WALK poses with the existing audited Hybrid planner."""
+        result = walk_plan('hybrid', parameters, settings, planning_map, start, goal,
+                           seed=seed)
+        route = result.get('route', [])
+        metadata = {
+            'status': result['status'],
+            'expanded': result['expanded'],
+            'discovered': result['discovered'],
+            'work_edges': result.get('work_edges', 0),
+            'planning_ms': result.get('planning_ms', 0.0),
+            'total_ms': result.get('total_ms', 0.0),
+            'validation_calls': result.get('validation_calls', 0),
+        }
+        if result.get('rejected_route'):
+            raise ValueError('Hybrid WALK route failed its internal motion audit')
+        if not result['success']:
+            return {
+                'connection_exists': False,
+                'route': [],
+                'walk_cost': None,
+                'cost_breakdown': None,
+                'motions': [],
+                'metadata': metadata,
+            }
+        if not route or route[0] != start or route[-1] != goal:
+            raise ValueError('Hybrid WALK connector returned incorrect endpoints')
+    
+        motions = Motions(parameters, planning_map)
+        cost = 0.0
+        breakdown = dict.fromkeys(('distance', 'terrain', 'reverse', 'turn_pivot', 'unknown'), 0.0)
+        segments = []
+        for first, second in zip(route, route[1:]):
+            if (
+                (first.x, first.y, first.z) == (second.x, second.y, second.z)
+                and abs(angle(first.heading - second.heading))
+                <= motions.edges.validator.straight.heading_tolerance
+            ):
+                continue
+            edge = motions.edge(first, second)
+            if edge is None:
+                raise ValueError('Hybrid WALK connector returned invalid motion')
+            cost += edge.cost
+            segments.append(edge)
+>           for name, value in edge.cost_breakdown.items():
+                               ^^^^^^^^^^^^^^^^^^^
+E           AttributeError: 'StraightWalkEdge' object has no attribute 'cost_breakdown'
+
+src\m4_global_planner\m4_global_planner\representation\hybrid_walk.py:59: AttributeError
+________ test_lazy_walk_cost_contract_survives_small_multimodal_route _________
+
+    def test_lazy_walk_cost_contract_survives_small_multimodal_route():
+        from test_joint_graph import prepared, audit
+    
+>       planner = prepared('T05_flight_bridge', walk_approach='lazy_hybrid',
+                           anchor_resolution=3)
+E       TypeError: prepared() got an unexpected keyword argument 'walk_approach'
+
+src\m4_global_planner\test\test_walk_contract.py:134: TypeError
+___________ test_clearance_applies_above_body_as_well_as_beside_it ____________
+
+    def test_clearance_applies_above_body_as_well_as_beside_it():
+        parameters, planning_map, _ = setup_contract()
+        planning_map.world['unknown_regions'] = []
+        planning_map.world['obstacles_3d'] = [{'min': [0, 0, 0.6], 'max': [5, 4, 1]}]
+        start = PoseState(2, 2, 0, 0)
+        parameters['walk_surface']['min_clearance_m'] = 0.05
+        assert WalkStateValidator(parameters).is_valid(start, planning_map)
+        parameters['walk_surface']['min_clearance_m'] = 0.2
+>       assert not WalkStateValidator(parameters).is_valid(start, planning_map)
+E       AssertionError: assert not True
+E        +  where True = is_valid(PoseState(x=2, y=2, z=0, heading=0), <m4_global_planner.dummy_map.DummyPlanningMap object at 0x000001FE3F076FC0>)
+E        +    where is_valid = <m4_global_planner.representation.walk_validator.WalkStateValidator object at 0x000001FE3F075940>.is_valid
+E        +      where <m4_global_planner.representation.walk_validator.WalkStateValidator object at 0x000001FE3F075940> = WalkStateValidator({'test_only': True, 'spatial_resolution': 0.5, 'heading_resolution_deg': 45, 'straight_walk': {'max_distance': 3.0, 'heading_tolerance_rad': 1e-09, 'lateral_tolerance': 1e-09, 'distance_cost_per_meter': 1.0, ...}, ...})
+
+src\m4_global_planner\test\test_walk_contract.py:153: AssertionError
+=========================== short test summary info ===========================
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_passage_pose_insertion_and_neighbor_reservation_are_distinct
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_component_bridges_add_only_valid_joining_edges_and_preserve_knn
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_component_bridges_do_not_cross_obstacles
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_component_bridge_budgets[max_connection_attempts-2-Connection attempt]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_component_bridge_budgets[max_bridge_candidates-1-candidate storage]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_component_bridge_budgets[max_edges-4-Edge budget]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_positive_translation_clearance_preserves_docks_and_morphs
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_invalid_translation_clearance[-1]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_invalid_translation_clearance[inf]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_invalid_translation_clearance[nan]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_positive_clearance_joint_routes_and_unchanged_anchors[4-success]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_positive_clearance_joint_routes_and_unchanged_anchors[7-graph_no_path]
+FAILED src/m4_global_planner/test/test_connectivity_followup.py::test_clearance_uses_inflated_box_bottom
+FAILED src/m4_global_planner/test/test_connectivity_general_rules.py::test_fixture_labels_and_expected_values_do_not_change_graphs
+FAILED src/m4_global_planner/test/test_hybrid_efficiency.py::test_adaptive_graph_caches_success_and_failure_across_fallback_levels[True]
+FAILED src/m4_global_planner/test/test_hybrid_efficiency.py::test_lazy_graph_invalidates_materialized_connections_after_map_change
+FAILED src/m4_global_planner/test/test_joint_roadmap.py::test_roadmap_is_deterministic_and_budget_failures_are_explicit
+FAILED src/m4_global_planner/test/test_joint_roadmap.py::test_sampled_roadmap_turn_room_miss_against_lattice_reference
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[open]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[off_grid]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[terrain]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[blocked]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[missing_ground]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[no_pivot]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_multi_resolution_matches_anchor_bound_and_audits_route[same_pose]
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_decimal_spaces_share_anchor_coordinates_without_rounding_pose
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_expansion_limit_endpoints_and_changed_snapshot
+FAILED src/m4_global_planner/test/test_multi_resolution.py::test_missing_heading_is_not_repaired_by_position_resolution
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_generated_multimodal_acceptance_graph_has_required_route_and_edges
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_invalid_walk_and_flight_connections_are_absent
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_hybrid_connector_stats_cover_bounded_build
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_motion_primitive_lattice_passes_multimodal_acceptance_without_changing_fly
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work[lazy_hybrid]
+FAILED src/m4_global_planner/test/test_multimodal_acceptance_graph.py::test_lazy_hybrid_variants_pass_multimodal_acceptance_and_report_work[adaptive_hybrid]
+FAILED src/m4_global_planner/test/test_search_comparison.py::test_benchmark_snapshot_and_route_audits
+FAILED src/m4_global_planner/test/test_state_lattice.py::test_invalid_spatial_resolution[nan]
+FAILED src/m4_global_planner/test/test_state_lattice.py::test_invalid_spatial_resolution[inf]
+FAILED src/m4_global_planner/test/test_state_lattice.py::test_invalid_heading_resolution[nan]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_cost_terms_are_separate_and_upstream_terrain_is_counted_once[0-forward]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_cost_terms_are_separate_and_upstream_terrain_is_counted_once[3.141592653589793-reverse]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_pivot_has_its_own_cost_and_no_distance_exposure
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[-1-max_slope_deg]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[-1-max_step_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[-1-max_gap_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[-1-min_clearance_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[-1-unknown_penalty]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[nan-max_slope_deg]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[nan-max_step_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[nan-max_gap_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[nan-min_clearance_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[nan-unknown_penalty]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[inf-max_slope_deg]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[inf-max_step_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[inf-max_gap_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[inf-min_clearance_m]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_bad_surface_parameters_fail_before_planning[inf-unknown_penalty]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_real_connector_cache_success_failure_and_cost_updates[revision]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_real_connector_cache_success_failure_and_cost_updates[replace]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_real_connector_cache_success_failure_and_cost_updates[explicit]
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_lazy_walk_cost_contract_survives_small_multimodal_route
+FAILED src/m4_global_planner/test/test_walk_contract.py::test_clearance_applies_above_body_as_well_as_beside_it
+61 failed, 347 passed in 104.61s (0:01:44)

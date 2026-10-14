@@ -1,0 +1,17 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:01:42) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26300-SP0",
+  "processor": "Intel64 Family 6 Model 154 Stepping 4, GenuineIntel",
+  "test_exit_code": 0,
+  "demo_exit_code": 0,
+  "document_links_checked": 6,
+  "missing_links": [],
+  "source_sha256": {
+    "src/m4_global_planner/m4_global_planner/astar.py": "3942bdd8a2e8e98dde35411ba481a0d4658fd02d63ab197005cb5856be141286",
+    "src/m4_global_planner/m4_global_planner/global_planner.py": "1b95fdbe9caa812f24b676b122a63c7ed49759fac88537b1a620dbf72833f9ea",
+    "src/m4_global_planner/m4_global_planner/graph.py": "652bbf445d43d13010c61038ed5808498b769b70d9b014734ff5ea6685d6e5c3",
+    "src/m4_global_planner/m4_global_planner/__init__.py": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "src/m4_global_planner/test/test_global_planner.py": "3f9bbe8e894a71b6986d08c1e27e0c8c65bd7df34f5bd09b1ebcdf8d7b59b715"
+  },
+  "timing_scope": "pytest duration is test execution overhead, not planner latency; no benchmark performed"
+}

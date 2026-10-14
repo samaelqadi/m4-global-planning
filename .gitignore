@@ -1,8 +1,10 @@
+/.venv/
 /build/
 /install/
 /log/
+/dist/
+*.egg-info/
 __pycache__/
 .pytest_cache/
 *.py[cod]
-
 /.git-metadata/
